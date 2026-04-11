@@ -1,11 +1,11 @@
 ## **Status:**
-- Review: Pending
-- PR: Todo
+- Review: Approved
+- PR: Approved
 
 ## Metadata
-- **Title:** Health check — `:checkhealth courier`
+- **Title:** Health check — `:checkhealth restman`
 - **Phase:** 7 — Diagnostics
-- **GitHub Issue:** (to be filled after sync)
+- **GitHub Issue:** #16
 
 ---
 
@@ -20,11 +20,11 @@ Module health cho `vim.health` API. Report trạng thái plugin, dependencies, e
   5. **history file:** path, entry count, file size → OK / MISSING.
   6. **Rails project:** `config/routes.rb` tồn tại / không → INFO.
 - **API:**
-  - `check()` register với `vim.health` → `:checkhealth courier` gọi.
+  - `check()` register với `vim.health` → `:checkhealth restman` gọi.
 - **Report format:**
 
 ```
-courier.nvim
+restman.nvim
 
 - Neovim version: OK ✅
   - nvim 0.10.0
@@ -51,7 +51,7 @@ courier.nvim
 ---
 
 ## Acceptance Criteria
-- [ ] `:checkhealth courier` hiển thị 6 section đúng format.
+- [ ] `:checkhealth restman` hiển thị 6 section đúng format.
 - [ ] Neovim 0.9.x → WARN.
 - [ ] curl không có → FAIL (icon `✗`).
 - [ ] Telescope có → OK, không → INFO (`ℹ️`).
@@ -62,11 +62,11 @@ courier.nvim
 ---
 
 ## Implementation Checklist
-- [ ] `lua/courier/health.lua` — export `check()`.
-- [ ] Gọi `vim.health.report_start("courier.nvim")`.
+- [ ] `lua/restman/health.lua` — export `check()`.
+- [ ] Gọi `vim.health.report_start("restman.nvim")`.
 - [ ] Các check: `vim.version.parse`, `vim.fn.executable`, `vim.loop.fs_stat`.
 - [ ] Format helper: `vim.health.report_ok`, `report_warn`, `report_error`, `report_info`.
-- [ ] Wire vào `plugin/courier.lua` — `vim.api.nvim_create_autocmd("FileType", { pattern = "courier-health", callback = ... })` hoặc cách đơn giản hơn: gọi `vim.schedule`.
+- [ ] Wire vào `plugin/restman.lua` — `vim.api.nvim_create_autocmd("FileType", { pattern = "restman-health", callback = ... })` hoặc cách đơn giản hơn: gọi `vim.schedule`.
 
 ---
 

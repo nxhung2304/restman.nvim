@@ -1,16 +1,16 @@
 ## **Status:**
-- Review: Pending
-- PR: Todo
+- Review: Approved
+- PR: Approved
 
 ## Metadata
-- **Title:** Commands & keymaps — `:Courier` subcommand dispatcher
+- **Title:** Commands & keymaps — `:Restman` subcommand dispatcher
 - **Phase:** 4 — Wiring
-- **GitHub Issue:** (to be filled after sync)
+- **GitHub Issue:** #13
 
 ---
 
 ## Description
-Wire toàn bộ các module thành UX user-facing. Đăng ký `:Courier` command duy nhất với subcommand, tab-completion, và default keymaps.
+Wire toàn bộ các module thành UX user-facing. Đăng ký `:Restman` command duy nhất với subcommand, tab-completion, và default keymaps.
 
 - **Command:** `nvim_create_user_command("Courier", dispatch, { nargs = "*", complete = complete_fn, range = true })`.
 - **Subcommands:**
@@ -20,16 +20,16 @@ Wire toàn bộ các module thành UX user-facing. Đăng ký `:Courier` command
   - `history` — mở history picker (issue 014 sẽ inject handler).
   - `cancel` — `http_client.cancel()`.
   - `rails` / `rails refresh` — (issue 015 inject).
-  - `health` — gọi `vim.cmd("checkhealth courier")`.
+  - `health` — gọi `vim.cmd("checkhealth restman")`.
 - **Tab-completion:** return list subcommand nếu đang gõ arg đầu, list sub-sub (`refresh`) nếu đang ở arg 2 và arg 1 = `rails`.
-- **Range support cho `send`:** nếu user `V` chọn block rồi `:Courier send` → pass visual block vào parser dispatcher.
+- **Range support cho `send`:** nếu user `V` chọn block rồi `:Restman send` → pass visual block vào parser dispatcher.
 - **Default keymaps** (config được override, set qua `setup`):
-  - `<leader>rs` → `:Courier send` (normal + visual mode).
-  - `<leader>rr` → `:Courier repeat`.
-  - `<leader>re` → `:Courier env`.
-  - `<leader>rh` → `:Courier history`.
-  - `<leader>rc` → `:Courier cancel`.
-- **Pending guard:** nếu `http_client.is_pending()` khi user gọi `send` → `vim.ui.input` prompt `"Cancel previous request? [y/N]"`.
+  - `<leader>rs` → `:Restman send` (normal + visual mode).
+  - `<leader>rr` → `:Restman repeat`.
+  - `<leader>re` → `:Restman env`.
+  - `<leader>rh` → `:Restman history`.
+  - `<leader>rc` → `:Restman cancel`.
+- **Approved guard:** nếu `http_client.is_pending()` khi user gọi `send` → `vim.ui.input` prompt `"Cancel previous request? [y/N]"`.
 - **Last request state:** module-level `M._last = { request }`, update sau mỗi send thành công, dùng cho `repeat`.
 
 ---
@@ -41,25 +41,25 @@ Wire toàn bộ các module thành UX user-facing. Đăng ký `:Courier` command
 ---
 
 ## Acceptance Criteria
-- [ ] `:Courier <Tab>` gợi ý: `send repeat env history cancel rails health`.
-- [ ] `:Courier rails <Tab>` gợi ý: `refresh`.
-- [ ] `:Courier send` trên dòng cURL → float hiện response.
-- [ ] `V` + `:Courier send` → body lấy từ visual (scenario #4).
+- [ ] `:Restman <Tab>` gợi ý: `send repeat env history cancel rails health`.
+- [ ] `:Restman rails <Tab>` gợi ý: `refresh`.
+- [ ] `:Restman send` trên dòng cURL → float hiện response.
+- [ ] `V` + `:Restman send` → body lấy từ visual (scenario #4).
 - [ ] `<leader>rs` default hoạt động.
 - [ ] `<leader>rc` khi có pending → hủy, notify.
 - [ ] `<leader>rs` lần 2 khi pending → prompt cancel.
-- [ ] `:Courier repeat` gửi lại đúng request gần nhất sau khi restart không work (`_last` RAM-only) — OK theo spec.
-- [ ] `:Courier health` mở checkhealth.
-- [ ] Chỉ có 1 top-level command `:Courier` (không có `:CourierSend`, ...).
+- [ ] `:Restman repeat` gửi lại đúng request gần nhất sau khi restart không work (`_last` RAM-only) — OK theo spec.
+- [ ] `:Restman health` mở checkhealth.
+- [ ] Chỉ có 1 top-level command `:Restman` (không có `:RestmanSend`, ...).
 
 ---
 
 ## Implementation Checklist
-- [ ] `lua/courier/init.lua` mở rộng — `setup()` gọi `commands.register()`, `keymaps.register(config)`.
-- [ ] `lua/courier/commands.lua` — dispatch + complete.
+- [ ] `lua/restman/init.lua` mở rộng — `setup()` gọi `commands.register()`, `keymaps.register(config)`.
+- [ ] `lua/restman/commands.lua` — dispatch + complete.
 - [ ] Keymap registration helper.
 - [ ] Wire `send` flow: parse → env → http_client → buffer → view.
-- [ ] Pending guard prompt.
+- [ ] Approved guard prompt.
 
 ---
 

@@ -1,11 +1,11 @@
 ## **Status:**
-- Review: Pending
-- PR: Todo
+- Review: Approved
+- PR: Approved
 
 ## Metadata
 - **Title:** UI — Picker abstraction (Telescope + `vim.ui.select` fallback)
 - **Phase:** 3 — UI
-- **GitHub Issue:** (to be filled after sync)
+- **GitHub Issue:** #12
 
 ---
 
@@ -21,7 +21,7 @@ Abstraction cho 3 use-case picker: history, env list, rails routes. Dùng Telesc
     - `title`: label picker.
 - **Telescope path:** `pcall(require, "telescope.pickers")`, nếu ok → dùng `telescope.pickers.new(...)` với custom action map Enter + `<C-o>`.
 - **Fallback:** `vim.ui.select(items, { prompt = title, format_item = format }, function(choice) on_select(choice) end)`. Fallback **không support** `on_secondary` — log info "upgrade to Telescope for advanced actions".
-- **Telescope extension registration:** expose `:Telescope courier history`, `:Telescope courier env`, `:Telescope courier rails_routes` (optional, nếu Telescope có → auto register).
+- **Telescope extension registration:** expose `:Telescope restman history`, `:Telescope restman env`, `:Telescope restman rails_routes` (optional, nếu Telescope có → auto register).
 - **Buffer list picker:** helper `open_buffer_list()` liệt kê tất cả response buffer từ `ui.buffer.list()`, on_select → `view.open(bufnr, current_mode)`.
 
 ---
@@ -43,10 +43,10 @@ Abstraction cho 3 use-case picker: history, env list, rails routes. Dùng Telesc
 ---
 
 ## Implementation Checklist
-- [ ] `lua/courier/ui/picker.lua` — `pick`, `open_buffer_list`.
+- [ ] `lua/restman/ui/picker.lua` — `pick`, `open_buffer_list`.
 - [ ] `pcall(require, "telescope.pickers")` kiểm tra 1 lần, cache boolean `M._has_telescope`.
 - [ ] Telescope branch: custom `attach_mappings` cho Enter + `<C-o>`.
-- [ ] Extension register: file `lua/telescope/_extensions/courier.lua` (chỉ load nếu Telescope có).
+- [ ] Extension register: file `lua/telescope/_extensions/restman.lua` (chỉ load nếu Telescope có).
 
 ---
 

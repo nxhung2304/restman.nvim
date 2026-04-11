@@ -1,18 +1,18 @@
 ## **Status:**
-- Review: Pending
-- PR: Todo
+- Review: Approved
+- PR: Approved
 
 ## Metadata
 - **Title:** History — persist, replay, jump to source
 - **Phase:** 5 — Persistence
-- **GitHub Issue:** (to be filled after sync)
+- **GitHub Issue:** #14
 
 ---
 
 ## Description
 Module lưu lịch sử request và expose picker.
 
-- **File:** `vim.fn.stdpath("data") .. "/courier/history.json"` — tạo dir nếu chưa có.
+- **File:** `vim.fn.stdpath("data") .. "/restman/history.json"` — tạo dir nếu chưa có.
 - **Encode/decode:** `vim.json.encode/decode`. **KHÔNG** dùng `vim.fn.json_*`.
 - **Entry schema:**
   ```json
@@ -37,7 +37,7 @@ Module lưu lịch sử request và expose picker.
   - `open_picker(view_mode)` — gọi `picker.pick(...)` với actions Enter (load response) / `<C-o>` (jump to source).
 - **Replay:** nếu buffer của response cũ còn (match index trong `ui.buffer`) → mở lại buffer đó. Nếu LRU đã wipe → re-send request, ghi entry mới.
 - **Jump to source:** `vim.cmd("edit " .. entry.file)` + `nvim_win_set_cursor(0, {entry.line, 0})`. File missing → notify, marker `[missing]` trong list, disable action nhưng Enter (replay) vẫn work.
-- **`<leader>rr` / `:Courier repeat`:** dùng `M._last` (RAM) nếu có, fallback `history.last()`.
+- **`<leader>rr` / `:Restman repeat`:** dùng `M._last` (RAM) nếu có, fallback `history.last()`.
 
 ---
 
@@ -51,22 +51,22 @@ Module lưu lịch sử request và expose picker.
 - [ ] `append` ghi entry mới vào file, verify bằng `cat` (ngoài plugin).
 - [ ] Entry thứ 101 → entry 1 bị drop.
 - [ ] `file` lưu absolute, picker hiển thị relative.
-- [ ] `:Courier history` mở split (không phải float).
+- [ ] `:Restman history` mở split (không phải float).
 - [ ] Enter trên entry còn buffer → load lại buffer cũ, không re-send.
 - [ ] Enter trên entry buffer đã wipe → re-send, tạo buffer mới.
 - [ ] `<C-o>` trên entry file còn → jump đúng line.
 - [ ] `<C-o>` trên entry file missing → notify, picker vẫn mở được, Enter vẫn replay được.
-- [ ] `:Courier repeat` work sau `nvim_restart` (dùng history fallback).
+- [ ] `:Restman repeat` work sau `nvim_restart` (dùng history fallback).
 - [ ] Dùng `vim.json.*` — grep codebase không có `vim.fn.json_`.
 
 ---
 
 ## Implementation Checklist
-- [ ] `lua/courier/history.lua`.
+- [ ] `lua/restman/history.lua`.
 - [ ] File I/O: `vim.fn.mkdir(dir, "p")`, `vim.fn.readfile`, `vim.fn.writefile`.
 - [ ] `append` với LRU truncate.
 - [ ] `open_picker` — gọi `ui.picker.pick` với 2 actions.
-- [ ] Wire vào `commands.lua` — `:Courier history` → `history.open_picker()`.
+- [ ] Wire vào `commands.lua` — `:Restman history` → `history.open_picker()`.
 - [ ] Wire `send` flow: sau `on_complete` thành công → `history.append(req, res)`.
 
 ---

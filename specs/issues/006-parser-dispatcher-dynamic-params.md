@@ -1,11 +1,11 @@
 ## **Status:**
-- Review: Pending
-- PR: Todo
+- Review: Approved
+- PR: Approved
 
 ## Metadata
 - **Title:** Parser dispatcher + dynamic path params
 - **Phase:** 1 — Parser core
-- **GitHub Issue:** (to be filled after sync)
+- **GitHub Issue:** #6
 
 ---
 
@@ -40,7 +40,7 @@ Entry point của parser. Nhận `bufnr + cursor_line`, chạy thứ tự các s
 ---
 
 ## Implementation Checklist
-- [ ] `lua/courier/parser/init.lua` — export `parse_current_line(bufnr, line, opts)`.
+- [ ] `lua/restman/parser/init.lua` — export `parse_current_line(bufnr, line, opts)`.
 - [ ] Collect block lines cho cURL (join `\` continuations).
 - [ ] Call các sub-parser, pick first non-nil.
 - [ ] Merge với `directives.scan_above(...)`.

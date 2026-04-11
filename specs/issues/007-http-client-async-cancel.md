@@ -1,11 +1,11 @@
 ## **Status:**
-- Review: Pending
-- PR: Todo
+- Review: Approved
+- PR: Approved
 
 ## Metadata
 - **Title:** HTTP client — async `vim.system` + cancel
 - **Phase:** 2 — Execution
-- **GitHub Issue:** (to be filled after sync)
+- **GitHub Issue:** #7
 
 ---
 
@@ -16,7 +16,7 @@ Module thực thi request thật qua `curl` CLI, async, hỗ trợ cancel và ti
 - **Input:** request object từ parser dispatcher (đã resolve env).
 - **Output:** callback `on_complete(response | error)` với `response = { status, headers, body, duration_ms, raw }`.
 - **Curl args build:**
-  - `-X METHOD`, `-H "K: V"` cho mỗi header, `--data @-` (stdin) cho body, `-sS -D -` để lấy headers + body trong 1 lần, `-w "\nCOURIER_META %{http_code} %{time_total}\n"` footer.
+  - `-X METHOD`, `-H "K: V"` cho mỗi header, `--data @-` (stdin) cho body, `-sS -D -` để lấy headers + body trong 1 lần, `-w "\nRESTMAN_META %{http_code} %{time_total}\n"` footer.
   - `--max-time <timeout>` (mặc định 30s, config được).
   - `-G --data-urlencode` nếu có query, hoặc append vào URL.
 - **Parse response:** tách header block và body block từ curl stdout, parse status code từ footer `COURIER_META`.
@@ -45,7 +45,7 @@ Module thực thi request thật qua `curl` CLI, async, hỗ trợ cancel và ti
 ---
 
 ## Implementation Checklist
-- [ ] `lua/courier/http_client.lua` — export `send(req, cb)`, `cancel()`, `is_pending()`.
+- [ ] `lua/restman/http_client.lua` — export `send(req, cb)`, `cancel()`, `is_pending()`.
 - [ ] Build curl arg list (table).
 - [ ] Parse response: split header/body, extract status.
 - [ ] State `M._pending = { handle, started_at }`.
@@ -56,4 +56,4 @@ Module thực thi request thật qua `curl` CLI, async, hỗ trợ cancel và ti
 
 ## Notes
 - KHÔNG đụng UI ở module này. `on_complete` chỉ pass data lên; `ui/` layer render.
-- `User-Agent: courier.nvim/1.0` auto add vào mọi request (trừ khi user override).
+- `User-Agent: restman.nvim/1.0` auto add vào mọi request (trừ khi user override).

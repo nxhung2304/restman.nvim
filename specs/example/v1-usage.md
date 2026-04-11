@@ -1,4 +1,4 @@
-# 🎥 courier.nvim v1.0 — UX Walkthrough
+# 🎥 restman.nvim v1.0 — UX Walkthrough
 
 > **Mục đích file:** mô tả chính xác những gì user sẽ thấy khi dùng plugin sau khi v1.0 hoàn tất. Đây là "kim chỉ nam UX" — khi implement một feature, đối chiếu với kịch bản tương ứng để verify hành vi.
 >
@@ -38,7 +38,7 @@
 ### `init.lua` (user config tối thiểu)
 
 ```lua
-require("courier").setup({
+require("restman").setup({
   -- tất cả default, chỉ override phím nếu muốn
 })
 ```
@@ -70,7 +70,7 @@ Response should be 200.
 **Expected:**
 1. Parser nhận diện pattern raw cURL → `{ method = "GET", url = "http://localhost:3000/users/42", headers = { Accept = "application/json" } }`.
 2. Env `local` merge thêm `Authorization: Bearer dev-token-abc` vào headers (Accept không bị override vì key khác).
-3. `vim.system` spawn curl async, status bar hiện `[Courier] GET /users/42 ...`.
+3. `vim.system` spawn curl async, status bar hiện `[Restman] GET /users/42 ...`.
 4. Sau ~150ms, floating window mở ở giữa màn hình (80% × 70%, rounded border), chứa:
    ```
    GET http://localhost:3000/users/42
@@ -113,7 +113,7 @@ end
 3. Base URL ghép vào: `http://localhost:3000/api/v1/users/42`.
 4. Headers env merge → `Authorization: Bearer dev-token-abc` + `Content-Type: application/json`.
 5. Float window hiện response 200 với body user 42.
-6. Nếu user đổi env: `:Courier env` → picker hiện `local` / `staging` → chọn `staging` → bấm lại `<leader>rs` → URL giờ là `https://staging.api.example.com/api/v1/users/42`, header `Authorization` lấy từ `{{$env.STAGING_TOKEN}}` (biến OS env).
+6. Nếu user đổi env: `:Restman env` → picker hiện `local` / `staging` → chọn `staging` → bấm lại `<leader>rs` → URL giờ là `https://staging.api.example.com/api/v1/users/42`, header `Authorization` lấy từ `{{$env.STAGING_TOKEN}}` (biến OS env).
 
 ---
 
@@ -146,8 +146,8 @@ get '/articles/:slug/comments/:comment_id'
 **Setup:** `scratch.js`:
 
 ```javascript
-// @courier.body { "name": "OldValue" }
-// @courier.header X-Trace-Id: abc-123
+// @restman.body { "name": "OldValue" }
+// @restman.header X-Trace-Id: abc-123
 POST http://localhost:3000/users
 
 const payload = {
@@ -163,8 +163,8 @@ const payload = {
 
 **Expected:**
 1. Plugin parse dòng `POST http://localhost:3000/users` → `method = "POST"`, `url = "..."`.
-2. **Body precedence:** visual selection có → win. `@courier.body { "name": "OldValue" }` bị ignore.
-3. Directive `@courier.header X-Trace-Id: abc-123` vẫn apply (headers là merge, không phải winner-take-all).
+2. **Body precedence:** visual selection có → win. `@restman.body { "name": "OldValue" }` bị ignore.
+3. Directive `@restman.header X-Trace-Id: abc-123` vẫn apply (headers là merge, không phải winner-take-all).
 4. Request cuối:
    ```
    POST http://localhost:3000/users
@@ -179,27 +179,27 @@ const payload = {
    }
    ```
 5. Response 201 Created, tô xanh.
-6. Nếu user làm lại **không có visual selection** → directive `@courier.body` win, body là `{ "name": "OldValue" }`.
+6. Nếu user làm lại **không có visual selection** → directive `@restman.body` win, body là `{ "name": "OldValue" }`.
 
 ---
 
-## Kịch bản 5 — POST body qua @courier.body directive (multiline)
+## Kịch bản 5 — POST body qua @restman.body directive (multiline)
 
 **Setup:** `api-tests.http`:
 
 ```
--- @courier.body {
+-- @restman.body {
 --   "title": "New article",
 --   "tags": ["lua", "neovim"]
 -- }
--- @courier.header Idempotency-Key: 7f3a
+-- @restman.header Idempotency-Key: 7f3a
 POST /api/{{API_VERSION}}/articles
 ```
 
 **Action:** con trỏ trên dòng `POST /api/...`, bấm `<leader>rs` (không visual select).
 
 **Expected:**
-1. Parser directive scan comment block liền kề phía trên (stop khi gặp blank line hoặc non-comment). Gộp các dòng `@courier.body` multiline thành 1 JSON string, parse thành table.
+1. Parser directive scan comment block liền kề phía trên (stop khi gặp blank line hoặc non-comment). Gộp các dòng `@restman.body` multiline thành 1 JSON string, parse thành table.
 2. Env substitution: `{{API_VERSION}}` → `v1`, URL cuối `http://localhost:3000/api/v1/articles`.
 3. Gửi POST với body đã parse + header `Idempotency-Key: 7f3a` + env headers.
 4. Response 201 hiện trong float.
@@ -209,13 +209,13 @@ POST /api/{{API_VERSION}}/articles
 
 ## Kịch bản 6 — Rails routes picker với Telescope
 
-**Setup:** đang ở Rails project, Telescope đã cài. Chưa từng chạy `:Courier rails` trong session.
+**Setup:** đang ở Rails project, Telescope đã cài. Chưa từng chạy `:Restman rails` trong session.
 
-**Action:** `:Courier rails`.
+**Action:** `:Restman rails`.
 
 **Expected:**
-1. Lần đầu: plugin chạy `bin/rails routes` async (user thấy notify `[Courier] Loading rails routes...`). Mất ~3s.
-2. Output parse thành list, cache vào `.cache/courier/rails_routes.txt`.
+1. Lần đầu: plugin chạy `bin/rails routes` async (user thấy notify `[Restman] Loading rails routes...`). Mất ~3s.
+2. Output parse thành list, cache vào `.cache/restman/rails_routes.txt`.
 3. Telescope picker mở với format:
    ```
    GET    /users                    users#index
@@ -231,7 +231,7 @@ POST /api/{{API_VERSION}}/articles
 6. Response hiện trong float.
 7. Lần thứ 2 chạy `:Courier rails` trong cùng session → đọc thẳng từ cache file (< 50ms), không spawn `rails routes` nữa.
 8. Nếu `config/routes.rb` đã mtime mới hơn cache → notify warning `"routes.rb has changed since last cache, run :Courier rails refresh"` nhưng picker vẫn mở với cache cũ.
-9. `:Courier rails refresh` → xóa cache, re-run `bin/rails routes`, picker mở với data mới.
+9. `:Restman rails refresh` → xóa cache, re-run `bin/rails routes`, picker mở với data mới.
 10. Nếu Telescope **không** cài: fallback về `vim.ui.select` — list dài hơn, không có fuzzy, nhưng chức năng đầy đủ.
 
 ---
@@ -246,7 +246,7 @@ POST /api/{{API_VERSION}}/articles
 - Plugin gửi lại request gần nhất (request thứ 5) với **đúng** method/url/headers/body như lần trước. Response hiện trong float.
 - Không cần con trỏ ở đâu cả — repeat là stateless theo nghĩa "không đọc lại buffer hiện tại".
 
-**Action 2 — Mở history picker:** `:Courier history` (hoặc `<leader>rh`).
+**Action 2 — Mở history picker:** `:Restman history` (hoặc `<leader>rh`).
 
 **Expected 2:**
 1. Response viewer mở ở **split** (bên phải, size 80 cols) — không phải float. (§4.5 rule.)
@@ -280,7 +280,7 @@ POST /api/{{API_VERSION}}/articles
 
 **Expected 2:**
 1. Plugin kill curl process (bằng `vim.system` handle `kill()`).
-2. Notify `[Courier] Request cancelled`.
+2. Notify `[Restman] Request cancelled`.
 3. Không mở float window (cancel không phải error).
 4. History **không** log entry bị cancel (vì không có response).
 

@@ -1,11 +1,11 @@
 ## **Status:**
-- Review: Pending
-- PR: Todo
+- Review: Approved
+- PR: Approved
 
 ## Metadata
 - **Title:** Parser — Raw cURL
 - **Phase:** 1 — Parser core
-- **GitHub Issue:** (to be filled after sync)
+- **GitHub Issue:** #3
 
 ---
 
@@ -40,7 +40,7 @@ Parser nhận diện raw cURL command và trích xuất method, URL, headers, bo
 ---
 
 ## Implementation Checklist
-- [ ] `lua/courier/parser/curl.lua` — function `parse(lines_block, start_line, file_path)` nhận vào một block lines để hỗ trợ multi-line.
+- [ ] `lua/restman/parser/curl.lua` — function `parse(lines_block, start_line, file_path)` nhận vào một block lines để hỗ trợ multi-line.
 - [ ] Helper shell-split tối thiểu (handle `"..."`, `'...'`, escaped quote).
 - [ ] File-body read `-d @path` — nếu file không tồn tại → log warn, body = nil.
 - [ ] Unit test từng case trên.

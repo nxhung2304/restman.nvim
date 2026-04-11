@@ -1,11 +1,11 @@
 ## **Status:**
-- Review: Pending
-- PR: Todo
+- Review: Approved
+- PR: Approved
 
 ## Metadata
 - **Title:** Parser — Framework route DSL (Rails/Sinatra/Express)
 - **Phase:** 1 — Parser core
-- **GitHub Issue:** (to be filled after sync)
+- **GitHub Issue:** #4
 
 ---
 
@@ -39,7 +39,7 @@ Rule: method lấy từ tên hàm (lowercase). URL là string literal đầu ti�
 ---
 
 ## Implementation Checklist
-- [ ] `lua/courier/parser/dsl.lua` — function `parse(line, line_number, file_path)`.
+- [ ] `lua/restman/parser/dsl.lua` — function `parse(line, line_number, file_path)`.
 - [ ] Pattern: `^%s*(get|post|put|patch|delete|head|options)%s*[%(%s]+['"`]([^'"`]+)['"`]` (điều chỉnh cho Lua pattern engine — có thể phải dùng vim.regex hoặc nhiều gmatch).
 - [ ] Pattern Express: `[%w]+%.(get|post|...)%(['"`]([^'"`]+)['"`]`.
 - [ ] Word boundary để tránh match `getUser`, `get_user`.

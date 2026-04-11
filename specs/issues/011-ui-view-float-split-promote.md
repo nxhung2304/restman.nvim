@@ -1,11 +1,11 @@
 ## **Status:**
-- Review: Pending
-- PR: Todo
+- Review: Approved
+- PR: Approved
 
 ## Metadata
 - **Title:** UI — View layer (float/split/vsplit/tab + promote + keymaps)
 - **Phase:** 3 — UI
-- **GitHub Issue:** (to be filled after sync)
+- **GitHub Issue:** #11
 
 ---
 
@@ -48,7 +48,7 @@ Window layer của response viewer. Nhận `bufnr` từ buffer layer, mở trong
 - [ ] `open(bufnr, "split")` tạo vertical split bên phải 80 cols.
 - [ ] `s` từ float → float đóng, split mở với cùng bufnr, scroll position giữ nguyên.
 - [ ] `v` và `t` tương tự.
-- [ ] `q`/`<Esc>` đóng view nhưng `:ls` vẫn thấy buffer `courier://response/N`.
+- [ ] `q`/`<Esc>` đóng view nhưng `:ls` vẫn thấy buffer `restman://response/N`.
 - [ ] `y` copy body sang clipboard (`+` register).
 - [ ] `H` toggle headers section (verify bằng 2 lần bấm).
 - [ ] `R` toggle raw/pretty.
@@ -57,7 +57,7 @@ Window layer của response viewer. Nhận `bufnr` từ buffer layer, mở trong
 ---
 
 ## Implementation Checklist
-- [ ] `lua/courier/ui/view.lua` — `open`, `close`, `promote`, internal `_setup_keymaps(bufnr)`.
+- [ ] `lua/restman/ui/view.lua` — `open`, `close`, `promote`, internal `_setup_keymaps(bufnr)`.
 - [ ] State `M._current = { bufnr, winid, mode }`.
 - [ ] Promote: capture scroll position (`nvim_win_get_cursor`), đóng cũ, mở mới, restore cursor.
 - [ ] Keymap set qua `vim.keymap.set(..., { buffer = bufnr })`.
@@ -66,4 +66,4 @@ Window layer của response viewer. Nhận `bufnr` từ buffer layer, mở trong
 
 ## Notes
 - Depends on: 009 (buffer), 010 (render — để toggle gọi lại), 012 (picker — `<C-o>` action).
-- `:Courier send` → default `"float"`; `:Courier history` → default `"split"` (wire ở issue 013).
+- `:Restman send` → default `"float"`; `:Restman history` → default `"split"` (wire ở issue 013).

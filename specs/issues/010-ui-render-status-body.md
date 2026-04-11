@@ -1,11 +1,11 @@
 ## **Status:**
-- Review: Pending
-- PR: Todo
+- Review: Approved
+- PR: Approved
 
 ## Metadata
 - **Title:** UI — Render status/headers/body + syntax highlight
 - **Phase:** 3 — UI
-- **GitHub Issue:** (to be filled after sync)
+- **GitHub Issue:** #10
 
 ---
 
@@ -22,7 +22,7 @@ POST https://api.com/users
 ```
 
 - **Status line color:** dùng `nvim_buf_add_highlight` hoặc extmark, class-based:
-  - 2xx → `DiagnosticOk` / link custom `CourierOk` green.
+  - 2xx → `DiagnosticOk` / link custom `RestmanOk` green.
   - 3xx → `WarningMsg` yellow.
   - 4xx/5xx → `ErrorMsg` red.
 - **Body prettify + highlight:**
@@ -30,7 +30,7 @@ POST https://api.com/users
   - HTML → `filetype=html`.
   - XML → `filetype=xml`.
   - plain/unknown → không highlight.
-- **Toggle states** (lưu trong buffer var `b:courier_view_mode`):
+- **Toggle states** (lưu trong buffer var `b:restman_view_mode`):
   - Body view (default) — chỉ body.
   - Headers expanded — hiện headers block phía trên body.
   - Raw — dump raw response (trước khi prettify).
@@ -64,7 +64,7 @@ POST https://api.com/users
 ---
 
 ## Implementation Checklist
-- [ ] `lua/courier/ui/render.lua` — `render(bufnr, req, res, opts)`.
+- [ ] `lua/restman/ui/render.lua` — `render(bufnr, req, res, opts)`.
 - [ ] Helper `format_status(code)` → `{ text, hl_group }`.
 - [ ] Helper `format_bytes(n)`.
 - [ ] Helper `prettify(body, content_type)`.

@@ -1,11 +1,11 @@
 ## **Status:**
-- Review: Pending
-- PR: Todo
+- Review: Approved
+- PR: Approved
 
 ## Metadata
 - **Title:** Env loader — `.env.json` + `{{VAR}}` substitution
 - **Phase:** 2 — Execution
-- **GitHub Issue:** (to be filled after sync)
+- **GitHub Issue:** #8
 
 ---
 
@@ -14,7 +14,7 @@ Module quản lý environment: load `.env.json`, pick active env, substitute var
 
 - **Project root detection:** đi lên từ `vim.fn.expand("%:p:h")` cho tới khi gặp `.git/` hoặc `/`.
 - **Load:** `vim.json.decode(vim.fn.readfile(...))`. Lazy, cache trong module, `reload()` để ép re-read.
-- **Active env:** state module-level, khởi tạo từ `default` trong file. `:Courier env` đổi active.
+- **Active env:** state module-level, khởi tạo từ `default` trong file. `:Restman env` đổi active.
 - **Variable substitution:**
   - `{{VAR_NAME}}` → lookup `environments[active].variables.VAR_NAME`.
   - `{{$env.VAR}}` → `vim.env.VAR` hoặc `os.getenv("VAR")`.
@@ -40,13 +40,13 @@ Module quản lý environment: load `.env.json`, pick active env, substitute var
 - [ ] File `.env.json` không tồn tại → notify INFO 1 lần, `apply_to(request)` trả request nguyên vẹn (no merge).
 - [ ] File JSON lỗi → notify ERROR, không crash.
 - [ ] `default` trỏ tới env không tồn tại → ERROR + fallback.
-- [ ] `set_active(name)` persist qua `:Courier env`, ảnh hưởng toàn Neovim (global).
+- [ ] `set_active(name)` persist qua `:Restman env`, ảnh hưởng toàn Neovim (global).
 - [ ] `reload()` re-read file trên disk.
 
 ---
 
 ## Implementation Checklist
-- [ ] `lua/courier/env.lua` — export `apply_to(request)`, `set_active(name)`, `get_active()`, `list()`, `reload()`.
+- [ ] `lua/restman/env.lua` — export `apply_to(request)`, `set_active(name)`, `get_active()`, `list()`, `reload()`.
 - [ ] Project root search helper.
 - [ ] Substitute helper `gsub_vars(str, env_active)`.
 - [ ] Deep substitute cho table (headers, query, form, body-if-string).

@@ -1,18 +1,18 @@
 ## **Status:**
-- Review: Pending
-- PR: Todo
+- Review: Approved
+- PR: Approved
 
 ## Metadata
 - **Title:** UI — Response buffer layer + LRU
 - **Phase:** 3 — UI
-- **GitHub Issue:** (to be filled after sync)
+- **GitHub Issue:** #9
 
 ---
 
 ## Description
 Buffer layer của response viewer (§4.1). Tách biệt hoàn toàn với window layer — mỗi response là 1 scratch buffer, view chỉ là viewport.
 
-- **Tạo buffer:** `vim.api.nvim_create_buf(false, true)`, set options `buftype=nofile`, `bufhidden=hide`, `swapfile=false`, tên `courier://response/<n>` (n tăng dần global).
+- **Tạo buffer:** `vim.api.nvim_create_buf(false, true)`, set options `buftype=nofile`, `bufhidden=hide`, `swapfile=false`, tên `restman://response/<n>` (n tăng dần global).
 - **Registry:** module table `M._buffers = { [bufnr] = { index, request, response, created_at } }`.
 - **LRU wipe:** giữ tối đa 10 buffer, khi vượt → wipe oldest bằng `nvim_buf_delete(bufnr, { force = true })`, cleanup registry.
 - **API:**
@@ -32,7 +32,7 @@ Buffer layer của response viewer (§4.1). Tách biệt hoàn toàn với windo
 ---
 
 ## Acceptance Criteria
-- [ ] `create(req, res)` return bufnr valid, `:ls` thấy `courier://response/1`, `courier://response/2`, ...
+- [ ] `create(req, res)` return bufnr valid, `:ls` thấy `restman://response/1`, `restman://response/2`, ...
 - [ ] Buffer `nofile` + `bufhidden=hide` + không save được (`:w` phải error).
 - [ ] Push buffer thứ 11 → buffer thứ 1 (cũ nhất) bị `wipe`, chỉ còn 10 trong registry.
 - [ ] `list()` sort đúng theo recency.
@@ -42,7 +42,7 @@ Buffer layer của response viewer (§4.1). Tách biệt hoàn toàn với windo
 ---
 
 ## Implementation Checklist
-- [ ] `lua/courier/ui/buffer.lua` — các API trên.
+- [ ] `lua/restman/ui/buffer.lua` — các API trên.
 - [ ] Counter `M._next_index = 1`, tăng khi create.
 - [ ] LRU queue (table ordered).
 - [ ] Gọi `ui/render.render(bufnr, request, response)` sau khi tạo (depends on 010).

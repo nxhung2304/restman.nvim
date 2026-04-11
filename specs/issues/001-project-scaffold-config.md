@@ -1,22 +1,22 @@
 ## **Status:**
-- Review: Pending
-- PR: Todo
+- Review: Approved
+- PR: Approved
 
 ## Metadata
 - **Title:** Project scaffold & config
 - **Phase:** 0 — Foundation
-- **GitHub Issue:** (to be filled after sync)
+- **GitHub Issue:** #1
 
 ---
 
 ## Description
-Khởi tạo skeleton plugin courier.nvim để các module sau có chỗ drop vào.
+Khởi tạo skeleton plugin restman.nvim để các module sau có chỗ drop vào.
 
-- Tạo thư mục `lua/courier/` với các module stub (init, config, parser/, ui/, ...).
+- Tạo thư mục `lua/restman/` với các module stub (init, config, parser/, ui/, ...).
 - `init.lua` expose `setup(user_config)` — merge user config với default, check Neovim ≥ 0.10 (fail fast).
 - `config.lua` chứa default config: keymaps, response view, timeout, history, rails paths.
-- `log.lua` wrap `vim.notify` với level (debug/info/warn/error) và prefix `[Courier]`.
-- Tạo `plugin/courier.lua` entry tối thiểu (chỉ đăng ký `:Courier` command stub, để module sau wire thực sự).
+- `log.lua` wrap `vim.notify` với level (debug/info/warn/error) và prefix `[Restman]`.
+- Tạo `plugin/restman.lua` entry tối thiểu (chỉ đăng ký `:Restman` command stub, để module sau wire thực sự).
 - Tạo `stylua.toml` + `.gitignore` (ignore `.cache/`, `*.log`).
 
 ---
@@ -28,21 +28,21 @@ Khởi tạo skeleton plugin courier.nvim để các module sau có chỗ drop v
 ---
 
 ## Acceptance Criteria
-- [ ] `require("courier").setup({})` chạy không crash trên Neovim 0.10.
+- [ ] `require("restman").setup({})` chạy không crash trên Neovim 0.10.
 - [ ] Neovim < 0.10 → `setup` notify ERROR + return sớm (không đăng ký command).
 - [ ] User config được deep-merge với default (user key override, default key giữ).
-- [ ] `log.info/warn/error/debug` prefix `[Courier]` và gọi đúng level của `vim.notify`.
+- [ ] `log.info/warn/error/debug` prefix `[Restman]` và gọi đúng level của `vim.notify`.
 - [ ] `stylua lua/` chạy clean.
 
 ---
 
 ## Implementation Checklist
-- [ ] Tạo cây thư mục `lua/courier/**` + `plugin/courier.lua`.
+- [ ] Tạo cây thư mục `lua/restman/**` + `plugin/restman.lua`.
 - [ ] `config.lua` — default table + `merge(user)` helper.
 - [ ] `init.lua` — `setup()`, version check, export module API.
 - [ ] `log.lua` — wrapper `vim.notify`.
 - [ ] `.gitignore`, `stylua.toml`.
-- [ ] Smoke test: load plugin trong nvim, gọi `:lua require("courier").setup({})` không lỗi.
+- [ ] Smoke test: load plugin trong nvim, gọi `:lua require("restman").setup({})` không lỗi.
 
 ---
 

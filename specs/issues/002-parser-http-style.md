@@ -1,11 +1,11 @@
 ## **Status:**
-- Review: Pending
-- PR: Todo
+- Review: Approved
+- PR: Approved
 
 ## Metadata
 - **Title:** Parser — HTTP-style prefix (`GET https://...`)
 - **Phase:** 1 — Parser core
-- **GitHub Issue:** (to be filled after sync)
+- **GitHub Issue:** #2
 
 ---
 
@@ -37,7 +37,7 @@ Parser nhận diện pattern `METHOD URL` — token đầu dòng là HTTP verb, 
 ---
 
 ## Implementation Checklist
-- [ ] `lua/courier/parser/http.lua` — function `parse(line, line_number, file_path)`.
+- [ ] `lua/restman/parser/http.lua` — function `parse(line, line_number, file_path)`.
 - [ ] Regex/gmatch cho 9 methods.
 - [ ] Strip quote nếu URL bọc quote.
 - [ ] Unit test (manual hoặc `plenary.busted` nếu có) các case trên.
