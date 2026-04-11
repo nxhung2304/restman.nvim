@@ -1,0 +1,22 @@
+# Neovim plugin cache
+.cache/
+*.log
+
+# Local nvim data
+*.swap
+*.swo
+*.swp
+
+# Lua
+lua/vim/
+
+# Rocks.nvim
+rocks/
+
+# Test coverage
+luacov.*
+luacov.stats.out
+
+# OS
+.DS_Store
+Thumbs.db
