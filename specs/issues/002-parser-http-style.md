@@ -1,6 +1,6 @@
 ## **Status:**
 - Review: Approved
-- PR: Approved
+- PR: Draft
 
 ## Metadata
 - **Title:** Parser — HTTP-style prefix (`GET https://...`)

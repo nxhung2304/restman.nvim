@@ -1,6 +1,6 @@
 ## **Status:**
 - Review: Approved
-- PR: Approved
+- PR: Draft
 
 ## Metadata
 - **Title:** UI — Render status/headers/body + syntax highlight
