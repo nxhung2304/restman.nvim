@@ -42,6 +42,23 @@ local function is_valid_method(method_str)
   return false
 end
 
+---Check if a string looks like a URL
+---Matches: http://, https://, or paths starting with /
+---@param str string String to check
+---@return boolean True if looks like a URL
+local function looks_like_url(str)
+  local trimmed = vim.trim(str)
+  -- Check for http:// or https://
+  if trimmed:match("^https?://") then
+    return true
+  end
+  -- Check for path starting with /
+  if trimmed:match("^/") then
+    return true
+  end
+  return false
+end
+
 ---Parse a line as HTTP-style request (METHOD URL)
 ---Returns nil if line does not match the pattern
 ---Accepts:
@@ -49,6 +66,7 @@ end
 --- - POST /users
 --- - delete '/api/x'
 --- - # GET /api/v1/users/42 (comment lines are still parsed if pattern matches)
+--- - https://api.com/users (defaults to GET)
 ---
 ---@param line string Line to parse
 ---@param line_number number Line number (1-indexed)
@@ -65,7 +83,13 @@ function M.parse(line, line_number, file_path)
   -- Try to match METHOD URL pattern
   local method, url = stripped:match(PATTERN)
   if not method or not url then
-    return nil
+    -- No method found, check if this looks like a plain URL (default to GET)
+    if looks_like_url(stripped) then
+      method = "GET"
+      url = stripped
+    else
+      return nil
+    end
   end
 
   -- Validate that method is an HTTP verb

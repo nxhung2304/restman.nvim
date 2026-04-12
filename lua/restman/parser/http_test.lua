@@ -79,6 +79,19 @@ all_passed = test_case("Empty string returns nil", "", nil) and all_passed
 
 all_passed = test_case("Only method without URL returns nil", "GET", nil) and all_passed
 
+-- Plain URL tests (default to GET)
+all_passed = test_case("Plain HTTPS URL defaults to GET", "https://api.com/users",
+  { method = "GET", url = "https://api.com/users" }) and all_passed
+
+all_passed = test_case("Plain HTTP URL defaults to GET", "http://localhost:3000/api/users",
+  { method = "GET", url = "http://localhost:3000/api/users" }) and all_passed
+
+all_passed = test_case("Plain path defaults to GET", "/api/users",
+  { method = "GET", url = "/api/users" }) and all_passed
+
+all_passed = test_case("Plain localhost URL defaults to GET", "http://localhost",
+  { method = "GET", url = "http://localhost" }) and all_passed
+
 -- Verify source structure
 local result = http_parser.parse("GET /test", 42, "/path/to/file.http")
 if result and result.source and result.source.file == "/path/to/file.http" and result.source.line == 42 then
