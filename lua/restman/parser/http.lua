@@ -43,17 +43,36 @@ local function is_valid_method(method_str)
 end
 
 ---Check if a string looks like a URL
----Matches: http://, https://, or paths starting with /
+---Matches: http://, https://, paths starting with /, or hostnames (with optional port)
 ---@param str string String to check
 ---@return boolean True if looks like a URL
 local function looks_like_url(str)
   local trimmed = vim.trim(str)
+  local upper = string.upper(trimmed)
+
+  -- Exclude HTTP method names (case-insensitive)
+  if upper == "GET" or upper == "POST" or upper == "PUT" or upper == "PATCH"
+      or upper == "DELETE" or upper == "HEAD" or upper == "OPTIONS"
+      or upper == "CONNECT" or upper == "TRACE" then
+    return false
+  end
+
   -- Check for http:// or https://
   if trimmed:match("^https?://") then
     return true
   end
   -- Check for path starting with /
   if trimmed:match("^/") then
+    return true
+  end
+  -- Check for hostname with optional port (e.g., localhost:3000, api.example.com:8080)
+  -- Matches: word chars, dots, hyphens, followed by optional :port
+  if trimmed:match("^[%w%.-]+:%d+$") then
+    return true
+  end
+  -- Check for plain hostname (e.g., localhost, api.example.com)
+  -- But exclude method-like patterns (word followed by colon)
+  if trimmed:match("^[%w%.-]+$") and not trimmed:match("^%w+:") then
     return true
   end
   return false

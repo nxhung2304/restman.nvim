@@ -92,6 +92,15 @@ all_passed = test_case("Plain path defaults to GET", "/api/users",
 all_passed = test_case("Plain localhost URL defaults to GET", "http://localhost",
   { method = "GET", url = "http://localhost" }) and all_passed
 
+all_passed = test_case("Plain hostname with port defaults to GET", "localhost:3000",
+  { method = "GET", url = "localhost:3000" }) and all_passed
+
+all_passed = test_case("Plain hostname defaults to GET", "localhost",
+  { method = "GET", url = "localhost" }) and all_passed
+
+all_passed = test_case("Plain domain with port defaults to GET", "api.example.com:8080",
+  { method = "GET", url = "api.example.com:8080" }) and all_passed
+
 -- Verify source structure
 local result = http_parser.parse("GET /test", 42, "/path/to/file.http")
 if result and result.source and result.source.file == "/path/to/file.http" and result.source.line == 42 then

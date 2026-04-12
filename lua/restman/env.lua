@@ -43,10 +43,6 @@ local function load_env_file()
 
   -- Check if file exists
   if vim.fn.filereadable(env_file) == 0 then
-    if not M._notified_missing then
-      log.info("restman: .env.json not found, using empty environment")
-      M._notified_missing = true
-    end
     M._cache = false  -- Mark as checked (no file)
     return nil
   end
