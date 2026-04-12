@@ -61,6 +61,9 @@ M.defaults = {
   },
 }
 
+-- Cached merged config
+M._cached_config = nil
+
 ---Merge user config with defaults
 ---@param user_config? RestmanConfig User configuration
 ---@return RestmanConfig Merged configuration
@@ -79,7 +82,14 @@ function M.merge(user_config)
     end
   end
 
+  M._cached_config = result
   return result
+end
+
+---Get current config (returns cached merged config or defaults)
+---@return RestmanConfig Current configuration
+function M.get()
+  return M._cached_config or vim.deepcopy(M.defaults)
 end
 
 return M
