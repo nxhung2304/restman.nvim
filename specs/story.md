@@ -276,6 +276,17 @@ lua/restman/
 
 ---
 
+## 🚀 Tầm nhìn v1.1 (Enhancement)
+1. **Request Template Generator** — `:Restman new <method>` tạo boilerplate request.
+   - Syntax: `:Restman new get`, `:Restman new post`, `:Restman new put`, etc.
+   - Behavior: Insert request template tại vị trí con trỏ hiện tại.
+   - Template cho GET/HEAD/DELETE: chỉ METHOD + URL.
+   - Template cho POST/PUT/PATCH: METHOD + URL + `@restman.body {}` directive.
+   - Method **case-insensitive** (`post`, `POST`, `Post` đều được), nhưng render ra **uppercase** (POST).
+   - Tab-completion: gợi ý `get`, `post`, `put`, `patch`, `delete`, `head`, `options`.
+
+---
+
 ## 🚀 Tầm nhìn v2.0 (ngoài MVP)
 1. **Assertion Testing** — `@expect status 200`, `@expect body.id exists`.
 2. **Tree-sitter Parsing** — lấy body object từ biến truyền vào `axios.post(url, data)`.
@@ -283,6 +294,29 @@ lua/restman/
 4. **GraphQL support** — detect query/mutation blocks.
 5. **Request chaining** — dùng response field làm input cho request tiếp theo (`{{$prev.body.token}}`).
 6. **WebSocket / SSE** viewer.
+
+---
+
+## ⚠️ Known Testing Gaps
+
+### Unit Tests
+Các test files hiện tại cover **parser logic** (HTTP, cURL, DSL, directives) nhưng **thiếu**:
+- [ ] **Visual mode integration** — `:Restman send` với visual selection từ các vị trí khác nhau.
+- [ ] **commands.lua** — logic dispatch, visual block handling, request line detection.
+- [ ] **Multiple request scenarios** — khi file có nhiều request, select đúng cái nào?
+- [ ] **Edge cases** — lowercase method (`post`), request line ở xa (scan limit 50 lines), etc.
+
+### Test Cases Cần Thêm (v1.0 hoặc v1.1)
+
+**Visual Select Scenarios:**
+1. Visual select từ **request line + body** (lines 1-8) — ✅ vừa fix, nên có test
+2. Visual select từ **body only** (lines 4-8) — scan upward tìm request
+3. Visual select từ **header + body** (lines 2-8)
+4. Visual select với **lowercase method** (`post` vs `POST`)
+5. Visual select khi **request line ở xa** — scan limit 50 lines
+6. **`:Restman send` command** (vs keymap) — đã hoạt động, nên document
+
+**Implementation Note:** Visual mode test phức tạp vì cần mock Neovim buffer API. Nên dùng `vim.fn.feedkeys()` hoặc mock `nvim_buf_get_lines`, `nvim_win_get_cursor`, etc. Hoặc, viết integration test với file fixture + manual test.
 
 ---
 

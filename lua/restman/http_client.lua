@@ -229,6 +229,14 @@ function M.send(request, on_complete)
   -- Build curl args
   local args = build_curl_args(request, cfg)
 
+  -- Debug log
+  log.info("Sending: method=" .. request.method .. ", url=" .. request.url)
+  log.info("Headers: " .. vim.inspect(request.headers))
+  if request.body then
+    log.info("Body length: " .. #request.body .. " chars, body=" .. request.body)
+  end
+  log.info("Curl args: " .. table.concat(args, " "))
+
   -- Prepare stdin if needed
   local stdin_input = nil
   if needs_stdin(request) and request.body then
