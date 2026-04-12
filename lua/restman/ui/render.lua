@@ -5,6 +5,83 @@ local M = {}
 -- Create namespace for highlights
 local RESTMAN_NS = vim.api.nvim_create_namespace("restman")
 
+-- HTTP status text mapping
+local HTTP_STATUS_TEXT = {
+  [200] = "OK",
+  [201] = "Created",
+  [204] = "No Content",
+  [301] = "Moved Permanently",
+  [302] = "Found",
+  [304] = "Not Modified",
+  [400] = "Bad Request",
+  [401] = "Unauthorized",
+  [403] = "Forbidden",
+  [404] = "Not Found",
+  [405] = "Method Not Allowed",
+  [409] = "Conflict",
+  [422] = "Unprocessable Entity",
+  [429] = "Too Many Requests",
+  [500] = "Internal Server Error",
+  [502] = "Bad Gateway",
+  [503] = "Service Unavailable",
+}
+
+---Recursively serialize Lua table to JSON with 2-space indentation
+---@param val any Value to serialize
+---@param indent number Current indentation level (default 0)
+---@return string JSON string
+local function json_pretty(val, indent)
+  indent = indent or 0
+  local pad = string.rep("  ", indent)
+  local inner_pad = string.rep("  ", indent + 1)
+  local t = type(val)
+
+  if val == nil or val == vim.NIL then
+    return "null"
+  elseif t == "boolean" then
+    return tostring(val)
+  elseif t == "number" then
+    -- Format integers without decimal point
+    if val == math.floor(val) and math.abs(val) < 2 ^ 53 then
+      return string.format("%d", val)
+    end
+    return tostring(val)
+  elseif t == "string" then
+    -- Use vim.json.encode for safe string escaping (includes quotes)
+    return vim.json.encode(val)
+  elseif t == "table" then
+    -- Detect array vs object
+    local is_array = #val > 0
+    if is_array then
+      local items = {}
+      for _, v in ipairs(val) do
+        table.insert(items, inner_pad .. json_pretty(v, indent + 1))
+      end
+      if #items == 0 then
+        return "[]"
+      end
+      return "[\n" .. table.concat(items, ",\n") .. "\n" .. pad .. "]"
+    else
+      local entries = {}
+      -- Sort keys for deterministic output
+      local keys = vim.tbl_keys(val)
+      table.sort(keys, function(a, b)
+        return tostring(a) < tostring(b)
+      end)
+      for _, k in ipairs(keys) do
+        local key_str = vim.json.encode(tostring(k))
+        table.insert(entries, inner_pad .. key_str .. ": " .. json_pretty(val[k], indent + 1))
+      end
+      if #entries == 0 then
+        return "{}"
+      end
+      return "{\n" .. table.concat(entries, ",\n") .. "\n" .. pad .. "}"
+    end
+  end
+
+  return "null"
+end
+
 ---Format byte size to human-readable string
 ---@param bytes number Number of bytes
 ---@return string Formatted size (e.g., "1.2 KB", "256 B")
@@ -22,7 +99,7 @@ end
 ---@param code number HTTP status code
 ---@return table { text: string, hl_group: string }
 function M.format_status(code)
-  local text = code .. " " .. (require("restman.http_client").get_status_text and require("restman.http_client").get_status_text(code) or "Unknown")
+  local text = code .. " " .. (HTTP_STATUS_TEXT[code] or "Unknown")
 
   local hl_group = "Normal"
   if code >= 200 and code < 300 then
@@ -39,7 +116,7 @@ end
 ---Prettify body based on content type and detect filetype
 ---@param body string Raw response body
 ---@param content_type string|nil Content-Type header value
----@return string, string Prettified body, filetype for buffer
+---@return string, string|nil Prettified body, filetype for buffer
 function M.prettify(body, content_type)
   if not body or body == "" then
     return body, nil
@@ -52,7 +129,7 @@ function M.prettify(body, content_type)
     local success, decoded = pcall(vim.json.decode, body)
     if success then
       -- Pretty print with 2-space indent
-      local pretty = vim.inspect(decoded, { indent = 2 })
+      local pretty = json_pretty(decoded)
       return pretty, "json"
     end
   end

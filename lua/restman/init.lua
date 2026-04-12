@@ -33,6 +33,12 @@ function M.setup(user_config)
   end
 
   M.config = config.merge(user_config)
+
+  -- Register commands and keymaps
+  local commands = require("restman.commands")
+  commands.register()
+  commands.register_keymaps(M.config)
+
   log.info("restman.nvim loaded successfully")
 
   return true
