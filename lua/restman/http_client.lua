@@ -71,7 +71,7 @@ end
 ---@param cfg table Config
 ---@return string[] Curl argument array
 local function build_curl_args(request, cfg)
-  local args = {}
+  local args = { "curl" }
 
   -- Silent mode + show errors, dump headers inline
   table.insert(args, "-sS")
