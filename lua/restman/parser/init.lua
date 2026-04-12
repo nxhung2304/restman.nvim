@@ -1,10 +1,11 @@
 -- Parser module
--- Integrates HTTP-style and cURL parsers
+-- Integrates HTTP-style, DSL, and cURL parsers
 
 local M = {}
 
 -- Load individual parsers
 local http_parser = require("restman.parser.http")
+local dsl_parser = require("restman.parser.dsl")
 local curl_parser = require("restman.parser.curl")
 
 -- Parser registry for future extensibility
@@ -12,8 +13,19 @@ local PARSERS = {
   {
     name = "http",
     ---@diagnostic disable-next-line: duplicate-doc-field
-    parse = function(line, line_number, file_path)
+    parse = function(lines_block, line_number, file_path)
+      -- Single-line parser: extract first line from block
+      local line = type(lines_block) == "table" and lines_block[1] or lines_block
       return http_parser.parse(line, line_number, file_path)
+    end,
+  },
+  {
+    name = "dsl",
+    ---@diagnostic disable-next-line: duplicate-doc-field
+    parse = function(lines_block, line_number, file_path)
+      -- Single-line parser: extract first line from block
+      local line = type(lines_block) == "table" and lines_block[1] or lines_block
+      return dsl_parser.parse(line, line_number, file_path)
     end,
   },
   {
