@@ -1,3 +1,4 @@
+local util = require("restman.parser.util")
 local M = {}
 
 ---HTTP request method names
@@ -27,22 +28,6 @@ local PATTERN = "^(%S+)%s+(.+)$"
 ---@class RequestSource
 ---@field file string Source file path
 ---@field line number Source line number (1-indexed)
-
----Strip quotes from a string if wrapped in single or double quotes
----@param str string String to strip quotes from
----@return string String with quotes removed if present
-local function strip_quotes(str)
-  local trimmed = vim.trim(str)
-  -- Check for double quotes
-  if string.sub(trimmed, 1, 1) == '"' and string.sub(trimmed, -1) == '"' then
-    return string.sub(trimmed, 2, -2)
-  end
-  -- Check for single quotes
-  if string.sub(trimmed, 1, 1) == "'" and string.sub(trimmed, -1) == "'" then
-    return string.sub(trimmed, 2, -2)
-  end
-  return trimmed
-end
 
 ---Check if a string is a valid HTTP method (case-insensitive)
 ---@param method_str string String to check
@@ -89,7 +74,7 @@ function M.parse(line, line_number, file_path)
   end
 
   -- Strip quotes from URL if present
-  local clean_url = strip_quotes(url)
+  local clean_url = util.strip_quotes(url)
 
   -- Return parsed request structure
   return {
