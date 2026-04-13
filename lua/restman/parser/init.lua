@@ -94,8 +94,12 @@ local function detect_params(url)
   local params = {}
 
   -- Pattern 1: :name (colon prefix)
+  -- Skip port numbers (pure digits after colon, e.g., localhost:3000)
   for param in url:gmatch(":(%w+)") do
-    table.insert(params, param)
+    -- Exclude pure numbers (likely ports)
+    if not param:match("^%d+$") then
+      table.insert(params, param)
+    end
   end
 
   -- Pattern 2: {name} (curly braces)

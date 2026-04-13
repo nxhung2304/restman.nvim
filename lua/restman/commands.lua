@@ -62,8 +62,63 @@ function M._send(opts)
     -- Range support: collect visual block as body
     if opts.range > 0 then
       local vlines = vim.api.nvim_buf_get_lines(bufnr, opts.line1 - 1, opts.line2, false)
-      visual_block = table.concat(vlines, "\n")
-      line = opts.line1
+
+      -- Scan visual block for request line (can be at any position)
+      local found_request_line = false
+      local request_line_idx = nil  -- Index in vlines (1-based)
+
+      for i, vline in ipairs(vlines) do
+        local actual_line_number = opts.line1 + i - 1
+        if parser.parse(vline, actual_line_number, vim.api.nvim_buf_get_name(bufnr)) then
+          line = actual_line_number
+          found_request_line = true
+          request_line_idx = i
+          break
+        end
+      end
+
+      -- If not found in selection, scan upward from before selection
+      if not found_request_line then
+        for scan_line = opts.line1 - 1, math.max(1, opts.line1 - 50), -1 do
+          local candidate_lines = vim.api.nvim_buf_get_lines(bufnr, scan_line - 1, scan_line, false)
+          if #candidate_lines > 0 then
+            local parser_result = parser.parse(candidate_lines[1], scan_line, vim.api.nvim_buf_get_name(bufnr))
+            if parser_result then
+              line = scan_line
+              found_request_line = true
+              break
+            end
+          end
+        end
+      end
+
+      if not found_request_line then
+        log.warn("Restman: no request line found in or above visual selection")
+        return
+      end
+
+      -- Extract body from visual block
+      if request_line_idx then
+        -- Request line found within visual block: extract body after request line + headers
+        local body_start_idx = request_line_idx + 1
+        -- Skip header lines until blank line or JSON/XML start
+        for i = request_line_idx + 1, #vlines do
+          local line_content = vim.trim(vlines[i])
+          if line_content == "" or line_content:match("^[{%[]") or line_content:match("^<") then
+            body_start_idx = i
+            break
+          end
+        end
+        -- Reconstruct body from body_start_idx onward
+        local body_lines = {}
+        for i = body_start_idx, #vlines do
+          table.insert(body_lines, vlines[i])
+        end
+        visual_block = table.concat(body_lines, "\n")
+      else
+        -- Request line is above selection: entire visual block is body
+        visual_block = table.concat(vlines, "\n")
+      end
     end
 
     -- Parse request
@@ -173,9 +228,9 @@ function M._rails(opts)
 end
 
 ---Tab completion for :Restman command
----@param arg string Current argument being completed
+---@param _arg string Current argument being completed
 ---@param line string Full command line
----@param pos number Cursor position in line
+---@param _pos number Cursor position in line
 ---@return string[] List of completions
 function M._complete(_arg, line, _pos)
   local args = vim.split(line, "%s+")
@@ -199,7 +254,11 @@ function M.register_keymaps(cfg)
   local km = cfg.keymaps
   local opts = { silent = true, noremap = true }
 
-  vim.keymap.set({ "n", "v" }, km.send, "<cmd>Restman send<CR>",
+  -- Normal mode: use <cmd> for silent execution
+  vim.keymap.set("n", km.send, "<cmd>Restman send<CR>",
+    vim.tbl_extend("force", opts, { desc = "Restman: send request" }))
+  -- Visual mode: use : prefix to preserve visual range
+  vim.keymap.set("v", km.send, ":Restman send<CR>",
     vim.tbl_extend("force", opts, { desc = "Restman: send request" }))
   vim.keymap.set("n", km.repeat_last, "<cmd>Restman repeat<CR>",
     vim.tbl_extend("force", opts, { desc = "Restman: repeat last" }))

@@ -249,6 +249,27 @@ test_case("render.render: error response format", function()
   vim.api.nvim_buf_delete(bufnr, { force = true })
 end)
 
+-- Test 11b: render error response with newlines in message
+test_case("render.render: error response with newlines sanitized", function()
+  local bufnr = vim.api.nvim_create_buf(true, true)
+
+  local request = { method = "GET", url = "http://localhost:3000/api" }
+  local response = {
+    kind = "network",
+    message = "curl error\nconnection refused\ntry again",
+  }
+
+  render.render(bufnr, request, response)
+
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  assert_truthy(#lines > 0, "lines rendered")
+  assert_truthy(lines[1]:find("GET"), "contains method")
+  -- Newlines should be replaced with spaces
+  assert_truthy(not lines[2]:find("\n"), "error message has no newlines")
+
+  vim.api.nvim_buf_delete(bufnr, { force = true })
+end)
+
 -- Test 12: render success response
 test_case("render.render: success response format", function()
   local bufnr = vim.api.nvim_create_buf(true, true)

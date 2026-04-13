@@ -177,9 +177,12 @@ function M.render(bufnr, request, response, opts)
     -- Line 1: Method + URL
     table.insert(lines, request.method .. " " .. request.url)
 
-    -- Line 2: Error status
+    -- Line 2: Error status (sanitize message by replacing newlines with space)
     local error_icon = "❌"
-    local error_msg = error_icon .. " " .. (response.kind or "unknown") .. ": " .. (response.message or "unknown error")
+    local message = response.message or "unknown error"
+    -- Replace newlines with space to avoid nvim_buf_set_lines error
+    message = message:gsub("[\r\n]+", " ")
+    local error_msg = error_icon .. " " .. (response.kind or "unknown") .. ": " .. message
     table.insert(lines, error_msg)
 
     -- Line 3: Blank
