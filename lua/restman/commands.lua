@@ -28,7 +28,11 @@ local function _dispatch(opts)
   elseif sub == "env" then
     M._env()
   elseif sub == "history" then
-    M._history()
+    if opts.fargs[2] == "clear" then
+      M._history_clear()
+    else
+      M._history()
+    end
   elseif sub == "cancel" then
     M._cancel()
   elseif sub == "rails" then
@@ -139,6 +143,11 @@ function M._send(opts)
           local resp_bufnr = buffer.create(request, response)
           local cfg = config.get()
           view.open(resp_bufnr, cfg.response_view.default_view)
+          -- Persist to history (only on successful response with a status code)
+          if response.status then
+            local history = require("restman.history")
+            history.append(request, response, resp_bufnr)
+          end
         end)
       end)
     end)
@@ -160,9 +169,18 @@ end
 
 ---Repeat last request subcommand
 function M._repeat()
-  if not M._last then
-    log.warn("Restman: no previous request to repeat")
-    return
+  local request
+  if M._last then
+    request = M._last.request
+  else
+    -- Fallback to history when RAM state is lost (e.g. after restart)
+    local history = require("restman.history")
+    local last_entry = history.last()
+    if not last_entry or not last_entry.request then
+      log.warn("Restman: no previous request to repeat")
+      return
+    end
+    request = last_entry.request
   end
 
   local http_client = require("restman.http_client")
@@ -170,11 +188,15 @@ function M._repeat()
   local view = require("restman.ui.view")
   local config = require("restman.config")
 
-  http_client.send(M._last.request, function(response)
+  http_client.send(request, function(response)
     vim.schedule(function()
-      local resp_bufnr = buffer.create(M._last.request, response)
+      local resp_bufnr = buffer.create(request, response)
       local cfg = config.get()
       view.open(resp_bufnr, cfg.response_view.default_view)
+      if response.status then
+        local history = require("restman.history")
+        history.append(request, response, resp_bufnr)
+      end
     end)
   end)
 end
@@ -200,9 +222,16 @@ function M._env()
   })
 end
 
----History subcommand (stub for issue #14)
+---History subcommand — open history picker
 function M._history()
-  log.info("Restman: history not implemented yet, see issue #14")
+  local history = require("restman.history")
+  history.open_picker()
+end
+
+---Clear all history entries
+function M._history_clear()
+  local history = require("restman.history")
+  history.clear()
 end
 
 ---Cancel request subcommand
@@ -228,21 +257,28 @@ function M._rails(opts)
 end
 
 ---Tab completion for :Restman command
----@param _arg string Current argument being completed
+---@param arg string Current argument being completed
 ---@param line string Full command line
----@param _pos number Cursor position in line
 ---@return string[] List of completions
-function M._complete(_arg, line, _pos)
+function M._complete(arg, line)
   local args = vim.split(line, "%s+")
+
+  local function filter(candidates)
+    if arg == "" then return candidates end
+    return vim.tbl_filter(function(s) return s:sub(1, #arg) == arg end, candidates)
+  end
 
   -- Subcommand completion
   if #args <= 2 then
-    return { "send", "repeat", "env", "history", "cancel", "rails", "health" }
+    return filter({ "send", "repeat", "env", "history", "cancel", "rails", "health" })
   end
 
-  -- Sub-subcommand completion (e.g., rails refresh)
+  -- Sub-subcommand completion (e.g., rails refresh, history clear)
   if args[2] == "rails" then
-    return { "refresh" }
+    return filter({ "refresh" })
+  end
+  if args[2] == "history" then
+    return filter({ "clear" })
   end
 
   return {}

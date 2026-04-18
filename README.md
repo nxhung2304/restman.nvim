@@ -1,20 +1,26 @@
 # Restman.nvim
 
-**REST client for Neovim** — Send HTTP requests directly from your editor with syntax highlighting, pretty-printed responses, and seamless integration.
+Send HTTP requests directly neovim with any file type
 
-**Triết lý:** One-key experience, frictionless. Đặt con trỏ trên dòng request → bấm 1 phím → nhận kết quả trong floating window.
+## Demo
+1. Set GET method as default
+<img src="./images/demo_get_request.png">
+
+2. Create a todo
+<img src="./images/demo_post_request.png">
+
 
 ## Features
 
-- ✅ **Multiple request formats:** HTTP-style, cURL, DSL
-- ✅ **Async HTTP client** with timeout, headers, query params, form data, JSON body
-- ✅ **Response viewer** with syntax highlighting (JSON/HTML/XML)
-- ✅ **Floating window** + split/vsplit/tab modes
-- ✅ **Environment support** with variable substitution
-- ✅ **Request history** with LRU buffer management (10 buffers max)
-- ✅ **Telescope picker** for environment/history selection (with fallback to `vim.ui.select`)
-- ✅ **Keymaps** for easy navigation and response inspection
-- ✅ **Pretty-printed JSON** with proper syntax highlighting
+- **Multiple request formats:** HTTP-style, cURL, DSL
+- **Async HTTP client** with timeout, headers, query params, form data, JSON body
+- **Response viewer** with syntax highlighting (JSON/HTML/XML)
+- **Floating window** + split/vsplit/tab modes
+- **Environment support** with variable substitution
+- **Request history** — persist, replay, jump to source, and send to quickfix list
+- **Telescope picker** for environment/history selection (with fallback to `vim.ui.select`)
+- **Keymaps** for easy navigation and response inspection
+- **Pretty-printed JSON** with proper syntax highlighting
 
 ## Requirements
 
@@ -35,92 +41,6 @@ Using `lazy.nvim`:
 }
 ```
 
-Using `packer.nvim`:
-
-```lua
-use {
-  "nxhung2304/restman.nvim",
-  config = function()
-    require("restman").setup()
-  end,
-}
-```
-
-## Quick Start
-
-### 1. Create a request file
-
-Create a file named `requests.http`:
-
-```http
-GET https://jsonplaceholder.typicode.com/posts/1
-```
-
-### 2. Send the request
-
-- Position cursor on the request line
-- Press `<leader>rs` (default keymap)
-- Or run `:Restman send`
-
-### 3. View response
-
-Float window opens showing:
-- Status line: `200 OK   •   142ms   •   1.2 KB`
-- Separators and toggle hints
-- Pretty-printed JSON body
-
-**Navigate response:**
-- `q` or `<Esc>` — Close
-- `H` — Toggle headers
-- `B` — Show body
-- `R` — Show raw
-- `y` — Copy body to clipboard
-- `yy` — Copy full response
-- `<CR>` — Save body to file
-- `s`/`v`/`t` — Promote to split/vsplit/tab
-
-## Request Formats
-
-### HTTP-style (recommended)
-
-```http
-GET https://api.example.com/users
-
-POST https://api.example.com/users
-Content-Type: application/json
-Authorization: Bearer token123
-
-{
-  "name": "John",
-  "email": "john@example.com"
-}
-```
-
-### cURL format
-
-```bash
-curl -X GET https://jsonplaceholder.typicode.com/posts/1
-
-curl -X POST https://api.example.com/users \
-  -H "Content-Type: application/json" \
-  -d '{"name":"John"}'
-```
-
-### Query parameters
-
-```http
-GET https://jsonplaceholder.typicode.com/posts?userId=1&_limit=5
-```
-
-### Form data
-
-```http
-POST https://api.example.com/form
-Content-Type: application/x-www-form-urlencoded
-
-field1=value1&field2=value2
-```
-
 ## Commands
 
 | Command | Action |
@@ -128,7 +48,8 @@ field1=value1&field2=value2
 | `:Restman send` | Send request at cursor |
 | `:Restman repeat` | Re-send last request |
 | `:Restman env` | Switch environment |
-| `:Restman history` | Open response history picker |
+| `:Restman history` | Open request history picker |
+| `:Restman history clear` | Clear all history entries |
 | `:Restman cancel` | Cancel in-flight request |
 | `:Restman health` | Show plugin diagnostics |
 
@@ -176,6 +97,7 @@ require("restman").setup({
   history = {
     enabled = true,
     max_entries = 100,
+    deduplicate = true,  -- keep only latest entry per file:line (set false to keep full timeline)
   },
 })
 ```
@@ -234,163 +156,3 @@ When response window is open, these keys are available:
 | `t` | Promote to tab window |
 | `<C-o>` | Open response history picker |
 
-## Examples
-
-### GET request with query params
-
-```http
-GET https://jsonplaceholder.typicode.com/posts?userId=1&_limit=3
-```
-
-### POST with JSON body
-
-```http
-POST https://jsonplaceholder.typicode.com/posts
-Content-Type: application/json
-
-{
-  "title": "Test Post",
-  "body": "This is a test",
-  "userId": 1
-}
-```
-
-### PUT with authorization
-
-```http
-PUT https://api.example.com/users/123
-Authorization: Bearer eyJhbGc...
-Content-Type: application/json
-
-{
-  "name": "Updated Name",
-  "email": "new@example.com"
-}
-```
-
-### Multiline body with visual selection
-
-Select lines with `V`, then `:Restman send` to use selection as body:
-
-```http
-POST https://api.example.com/data
-Content-Type: application/json
-
-{selected lines become the request body}
-```
-
-## Limitations & Roadmap
-
-### Current (v1.0 MVP - Issues #9-#13)
-✅ Buffer management (LRU eviction)  
-✅ Response rendering (prettify, syntax highlight)  
-✅ View layer (float/split/promote)  
-✅ Picker abstraction (Telescope + fallback)  
-✅ Commands dispatcher & keymaps  
-✅ HTTP client (async curl)  
-✅ Environment loader & variable substitution  
-✅ Request parser (HTTP/cURL/DSL formats)  
-
-### Future (Issues #14-#16)
-📋 Response history persistence  
-📋 Rails routes integration  
-📋 Health check / curl version detection  
-
-## Troubleshooting
-
-### "Plugin loaded. Subcommands not yet implemented."
-
-This is the old stub message. Make sure you:
-1. Have the latest code (`git pull`)
-2. Called `require("restman").setup()` in your config
-3. Restarted Neovim or reloaded config (`:source %`)
-
-### "ENOENT: no such file or directory (cmd): '-sS'"
-
-Curl is not in your PATH or Neovim can't find it. Verify:
-```bash
-which curl
-echo $PATH
-```
-
-In Neovim, check with:
-```vim
-:lua print(vim.fn.system("which curl"))
-```
-
-### Response shows "Unknown" status text
-
-This is normal for non-standard status codes. Common codes (200, 404, 500, etc.) are always recognized.
-
-### Float window doesn't appear
-
-Try these alternatives:
-```vim
-:Restman send    " try again
-:Restman send | set splitright | split  " use split instead
-```
-
-Check `:messages` for error details.
-
-## Development
-
-### Running tests
-
-```bash
-nvim --headless -c "luafile lua/restman/ui/buffer_test.lua" -c "qa!"
-```
-
-### Project structure
-
-```
-restman.nvim/
-├── lua/restman/
-│   ├── init.lua                 # Entry point, setup()
-│   ├── config.lua              # Configuration schema
-│   ├── log.lua                 # Logging utility
-│   ├── http_client.lua         # Async curl wrapper
-│   ├── env.lua                 # Environment loader
-│   ├── parser/                 # Request parsers
-│   │   ├── init.lua            # Dispatcher
-│   │   ├── http.lua            # HTTP-style parser
-│   │   ├── curl.lua            # cURL parser
-│   │   └── ...
-│   └── ui/
-│       ├── buffer.lua          # Buffer management (LRU)
-│       ├── render.lua          # Response formatting
-│       ├── view.lua            # Window management
-│       └── picker.lua          # Picker abstraction
-├── plugin/
-│   └── restman.lua            # Plugin entry
-├── lua/telescope/
-│   └── _extensions/
-│       └── restman.lua        # Telescope extension
-└── specs/
-    ├── story.md               # Full specification
-    ├── example/
-    │   └── v1-usage.md       # Usage examples
-    └── issues/                # Individual issue specs
-```
-
-### Key modules
-
-- **parser**: Parse HTTP requests from multiple formats
-- **http_client**: Send requests asynchronously via curl
-- **env**: Load `.env.json` and substitute variables
-- **ui.buffer**: Manage response buffers with LRU eviction
-- **ui.render**: Format responses with syntax highlighting
-- **ui.view**: Open/close/promote response windows
-- **ui.picker**: Abstract picker (Telescope/vim.ui.select)
-- **commands**: Main dispatcher and keymaps
-
-## License
-
-MIT
-
-## Contributing
-
-Issues and PRs welcome! Check `specs/story.md` for architecture and DoD criteria.
-
----
-
-Made with ❤️ for frictionless REST testing in Neovim

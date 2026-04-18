@@ -16,6 +16,7 @@ local M = {}
 ---@field enabled boolean Enable history persistence
 ---@field file? string Path to history file (auto-generated if nil)
 ---@field max_entries number Maximum history entries (default: 100)
+---@field deduplicate boolean Remove previous entry for same file:line before inserting (default: true)
 
 ---@class RailsConfig
 ---@field cache_file? string Path to cache file (auto-generated if nil)
@@ -53,6 +54,7 @@ M.defaults = {
     enabled = true,
     file = nil, -- Will use default: vim.fn.stdpath("data") .. "/restman/history.json"
     max_entries = 100,
+    deduplicate = true,
   },
 
   rails = {

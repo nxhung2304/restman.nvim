@@ -106,6 +106,21 @@ local function build_curl_args(request, cfg)
     table.insert(args, "User-Agent: restman.nvim/1.0")
   end
 
+  -- Auto-inject Content-Type: application/json when body present and no Content-Type set
+  local has_content_type = false
+  if request.headers then
+    for key in pairs(request.headers) do
+      if key:lower() == "content-type" then
+        has_content_type = true
+        break
+      end
+    end
+  end
+  if request.body and not has_content_type and not (request.form and next(request.form)) then
+    table.insert(args, "-H")
+    table.insert(args, "Content-Type: application/json")
+  end
+
   -- Headers
   if request.headers then
     for key, value in pairs(request.headers) do

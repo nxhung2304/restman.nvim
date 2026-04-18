@@ -59,6 +59,26 @@ function M.pick(opts)
               opts.on_secondary(sel.value)
             end
           end)
+          map("n", "q", function()
+            actions.close(prompt_bufnr)
+            if opts.on_quickfix then
+              opts.on_quickfix()
+            end
+          end)
+          map("i", "<C-d>", function()
+            local sel = action_state.get_selected_entry()
+            if sel and opts.on_delete then
+              actions.close(prompt_bufnr)
+              opts.on_delete(sel.value)
+            end
+          end)
+          map("n", "<C-d>", function()
+            local sel = action_state.get_selected_entry()
+            if sel and opts.on_delete then
+              actions.close(prompt_bufnr)
+              opts.on_delete(sel.value)
+            end
+          end)
           return true
         end,
       })
