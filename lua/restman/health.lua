@@ -1,4 +1,5 @@
 local M = {}
+local health = require("vim.health")
 
 ---Check Neovim version requirement
 local function check_neovim_version()
@@ -6,9 +7,9 @@ local function check_neovim_version()
   local required_major, required_minor = 0, 10
 
   if version.major > required_major or (version.major == required_major and version.minor >= required_minor) then
-    vim.health.report_ok(string.format("Neovim %s", version.string))
+    health.report_ok(string.format("Neovim %s", version.string))
   else
-    vim.health.report_warn(string.format("Neovim %s (requires ≥ 0.10)", version.string))
+    health.report_warn(string.format("Neovim %s (requires ≥ 0.10)", version.string))
   end
 end
 
@@ -19,12 +20,12 @@ local function check_curl_executable()
       return vim.fn.system("curl --version 2>&1"):match("curl ([0-9.]+)")
     end)
     if ok and output then
-      vim.health.report_ok(string.format("curl %s", output))
+      health.report_ok(string.format("curl %s", output))
     else
-      vim.health.report_ok("curl available")
+      health.report_ok("curl available")
     end
   else
-    vim.health.report_error("curl not found (required for sending requests)")
+    health.report_error("curl not found (required for sending requests)")
   end
 end
 
@@ -33,19 +34,19 @@ local function check_env_file()
   -- Find project root locally
   local ok, env_module = pcall(require, "restman.env")
   if not ok then
-    vim.health.report_info("Environment: unable to load env module")
+    health.report_info("Environment: unable to load env module")
     return
   end
 
   local project_root = env_module._find_project_root(vim.uv.cwd())
   if not project_root then
-    vim.health.report_info("Environment: no .env.json (working outside git repository)")
+    health.report_info("Environment: no .env.json (working outside git repository)")
     return
   end
 
   local env_file = project_root .. "/.env.json"
   if vim.fn.filereadable(env_file) == 0 then
-    vim.health.report_warn(string.format("Environment: .env.json not found at %s", env_file))
+    health.report_warn(string.format("Environment: .env.json not found at %s", env_file))
   else
     local file_ok, data = pcall(function()
       return vim.fn.readfile(env_file)
@@ -58,12 +59,12 @@ local function check_env_file()
         for _ in pairs(json_data) do
           var_count = var_count + 1
         end
-        vim.health.report_ok(string.format("Environment: loaded (%d variables)", var_count))
+        health.report_ok(string.format("Environment: loaded (%d variables)", var_count))
       else
-        vim.health.report_warn(string.format("Environment: invalid JSON at %s", env_file))
+        health.report_warn(string.format("Environment: invalid JSON at %s", env_file))
       end
     else
-      vim.health.report_warn(string.format("Environment: .env.json empty at %s", env_file))
+      health.report_warn(string.format("Environment: .env.json empty at %s", env_file))
     end
   end
 end
@@ -72,9 +73,9 @@ end
 local function check_telescope()
   local ok = pcall(require, "telescope.pickers")
   if ok then
-    vim.health.report_ok("Telescope available")
+    health.report_ok("Telescope available")
   else
-    vim.health.report_info("Telescope not found. Fallback to vim.ui.select")
+    health.report_info("Telescope not found. Fallback to vim.ui.select")
   end
 end
 
@@ -82,7 +83,7 @@ end
 local function check_history_file()
   local ok, config_module = pcall(require, "restman.config")
   if not ok then
-    vim.health.report_info("History: unable to load config module")
+    health.report_info("History: unable to load config module")
     return
   end
 
@@ -90,7 +91,7 @@ local function check_history_file()
   local history_path = cfg.history.file or (vim.fn.stdpath("data") .. "/restman/history.json")
 
   if vim.fn.filereadable(history_path) == 0 then
-    vim.health.report_info("History: not created yet (0 entries, 0 B)")
+    health.report_info("History: not created yet (0 entries, 0 B)")
     return
   end
 
@@ -104,12 +105,12 @@ local function check_history_file()
       local entry_count = #json_data
       local stat = vim.loop.fs_stat(history_path)
       local size_kb = stat and (stat.size / 1024) or 0
-      vim.health.report_ok(string.format("History: %d entries, %.1f KB", entry_count, size_kb))
+      health.report_ok(string.format("History: %d entries, %.1f KB", entry_count, size_kb))
     else
-      vim.health.report_warn(string.format("History: invalid JSON at %s", history_path))
+      health.report_warn(string.format("History: invalid JSON at %s", history_path))
     end
   else
-    vim.health.report_info("History: file empty (0 entries, 0 B)")
+    health.report_info("History: file empty (0 entries, 0 B)")
   end
 end
 
@@ -117,32 +118,27 @@ end
 local function check_rails_project()
   local ok, env_module = pcall(require, "restman.env")
   if not ok then
-    vim.health.report_info("Rails: unable to load env module")
+    health.report_info("Rails: unable to load env module")
     return
   end
 
   local project_root = env_module._find_project_root(vim.uv.cwd())
   if not project_root then
-    vim.health.report_info("Rails: not a Rails project (no git root)")
+    health.report_info("Rails: not a Rails project (no git root)")
     return
   end
 
   local config_routes = project_root .. "/config/routes.rb"
   if vim.fn.filereadable(config_routes) == 1 then
-    vim.health.report_ok("Rails project detected")
+    health.report_ok("Rails project detected")
   else
-    vim.health.report_info("Rails: not a Rails project (config/routes.rb not found)")
+    health.report_info("Rails: not a Rails project (config/routes.rb not found)")
   end
 end
 
 ---Run all health checks
 function M.check()
-  -- Ensure vim.health is available
-  if not vim.health then
-    error("vim.health module not available")
-  end
-
-  vim.health.report_start("restman.nvim")
+  health.report_start("restman.nvim")
 
   local checks = {
     check_neovim_version,
@@ -156,11 +152,11 @@ function M.check()
   for _, check_fn in ipairs(checks) do
     local ok, err = pcall(check_fn)
     if not ok then
-      vim.health.report_warn(string.format("Check failed: %s", err))
+      health.report_warn(string.format("Check failed: %s", err))
     end
   end
 
-  vim.health.report_finish()
+  health.report_finish()
 end
 
 return M
