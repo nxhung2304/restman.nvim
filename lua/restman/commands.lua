@@ -139,6 +139,11 @@ function M._send(opts)
           local resp_bufnr = buffer.create(request, response)
           local cfg = config.get()
           view.open(resp_bufnr, cfg.response_view.default_view)
+          -- Persist to history (only on successful response with a status code)
+          if response.status then
+            local history = require("restman.history")
+            history.append(request, response, resp_bufnr)
+          end
         end)
       end)
     end)
@@ -160,9 +165,18 @@ end
 
 ---Repeat last request subcommand
 function M._repeat()
-  if not M._last then
-    log.warn("Restman: no previous request to repeat")
-    return
+  local request
+  if M._last then
+    request = M._last.request
+  else
+    -- Fallback to history when RAM state is lost (e.g. after restart)
+    local history = require("restman.history")
+    local last_entry = history.last()
+    if not last_entry or not last_entry.request then
+      log.warn("Restman: no previous request to repeat")
+      return
+    end
+    request = last_entry.request
   end
 
   local http_client = require("restman.http_client")
@@ -170,11 +184,15 @@ function M._repeat()
   local view = require("restman.ui.view")
   local config = require("restman.config")
 
-  http_client.send(M._last.request, function(response)
+  http_client.send(request, function(response)
     vim.schedule(function()
-      local resp_bufnr = buffer.create(M._last.request, response)
+      local resp_bufnr = buffer.create(request, response)
       local cfg = config.get()
       view.open(resp_bufnr, cfg.response_view.default_view)
+      if response.status then
+        local history = require("restman.history")
+        history.append(request, response, resp_bufnr)
+      end
     end)
   end)
 end
@@ -200,9 +218,10 @@ function M._env()
   })
 end
 
----History subcommand (stub for issue #14)
+---History subcommand — open history picker
 function M._history()
-  log.info("Restman: history not implemented yet, see issue #14")
+  local history = require("restman.history")
+  history.open_picker()
 end
 
 ---Cancel request subcommand
