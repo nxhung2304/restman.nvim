@@ -245,7 +245,13 @@ function M.send_route(route)
 
   parser.resolve_dynamic_params(request.url, routes_file, function(resolved_url)
     request.url = resolved_url
-    send_request(env.apply_to(request))
+    env.apply_to_async(
+      request,
+      { project_root = project_root, force_detect = true },
+      function(resolved_request)
+        send_request(resolved_request)
+      end
+    )
   end)
 end
 
@@ -263,6 +269,7 @@ function M.load_routes(opts, callback)
   local cache_file = get_cache_file(project_root)
   if opts.refresh then
     os.remove(cache_file)
+    require("restman.env").clear_base_url_cache(project_root)
   end
 
   local started_at = vim.uv.hrtime()

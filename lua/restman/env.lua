@@ -3,19 +3,50 @@
 local M = {}
 
 local log = require("restman.log")
+local find_project_root
 
 -- Module state
-M._cache = nil  -- Loaded .env.json content
-M._active = nil  -- Active environment name
-M._notified_missing = false  -- Flag to suppress duplicate missing file notifications
-M._base_url_cache = nil  -- Session cache for prompted base_url
+M._cache = nil -- Loaded .env.json content
+M._active = nil -- Active environment name
+M._notified_missing = false -- Flag to suppress duplicate missing file notifications
+M._base_url_cache = {} -- Session cache for prompted/detected base_url by project root
+
+local function get_current_dir()
+  local current_file = vim.api.nvim_buf_get_name(0)
+  if current_file and current_file ~= "" then
+    return vim.fn.fnamemodify(current_file, ":h")
+  end
+  return vim.uv.cwd()
+end
+
+local function get_project_root()
+  return find_project_root(get_current_dir())
+end
+
+---@param project_root string|nil
+---@return string|nil
+local function get_cached_base_url(project_root)
+  if not project_root then
+    return nil
+  end
+  return M._base_url_cache[project_root]
+end
+
+---@param project_root string|nil
+---@param base_url string|nil
+local function set_cached_base_url(project_root, base_url)
+  if not project_root or not base_url or base_url == "" then
+    return
+  end
+  M._base_url_cache[project_root] = base_url
+end
 
 ---Find project root by walking up directories until .git/ is found
 ---@param start_dir string Starting directory path
 ---@return string Project root directory or start_dir if not found
-local function find_project_root(start_dir)
+find_project_root = function(start_dir)
   local dir = start_dir
-  local max_depth = 20  -- Prevent infinite loops
+  local max_depth = 20 -- Prevent infinite loops
 
   while dir and dir ~= "/" and max_depth > 0 do
     if vim.fn.isdirectory(dir .. "/.git") == 1 then
@@ -36,14 +67,12 @@ local function load_env_file()
   end
 
   -- Find .env.json in project root
-  local current_file = vim.api.nvim_buf_get_name(0)
-  local current_dir = vim.fn.fnamemodify(current_file, ":h")
-  local project_root = find_project_root(current_dir)
+  local project_root = get_project_root()
   local env_file = project_root .. "/.env.json"
 
   -- Check if file exists
   if vim.fn.filereadable(env_file) == 0 then
-    M._cache = false  -- Mark as checked (no file)
+    M._cache = false -- Mark as checked (no file)
     return nil
   end
 
@@ -70,9 +99,7 @@ local function load_env_file()
   -- Validate default environment exists
   if env_data.default then
     if not env_data.environments or not env_data.environments[env_data.default] then
-      log.error(
-        "restman: default environment '" .. env_data.default .. "' not found in .env.json"
-      )
+      log.error("restman: default environment '" .. env_data.default .. "' not found in .env.json")
       M._cache = false
       return nil
     end
@@ -81,6 +108,76 @@ local function load_env_file()
 
   M._cache = env_data
   return env_data
+end
+
+---@param lsof_output string
+---@return integer|nil
+local function parse_listen_port(lsof_output)
+  if not lsof_output or lsof_output == "" then
+    return nil
+  end
+
+  for line in lsof_output:gmatch("[^\r\n]+") do
+    local port = line:match("TCP%s+[%w%.%*:%[%]-]+:(%d+)%s+%(LISTEN%)")
+    if port then
+      return tonumber(port)
+    end
+  end
+
+  return nil
+end
+
+---@param project_root string
+---@return string|nil
+local function get_rails_server_pid(project_root)
+  local pid_file = project_root .. "/tmp/pids/server.pid"
+  if vim.fn.filereadable(pid_file) == 0 then
+    return nil
+  end
+
+  local lines = vim.fn.readfile(pid_file)
+  local pid = lines[1] and vim.trim(lines[1]) or nil
+  if not pid or pid == "" or not pid:match("^%d+$") then
+    return nil
+  end
+
+  return pid
+end
+
+---@param project_root string
+---@param callback function Callback(base_url)
+local function detect_rails_base_url_async(project_root, callback)
+  if vim.fn.filereadable(project_root .. "/config/routes.rb") == 0 then
+    callback(nil)
+    return
+  end
+
+  local pid = get_rails_server_pid(project_root)
+  if not pid then
+    callback(nil)
+    return
+  end
+
+  vim.system(
+    { "lsof", "-Pan", "-p", pid, "-iTCP", "-sTCP:LISTEN" },
+    { text = true },
+    function(result)
+      vim.schedule(function()
+        if result.code ~= 0 then
+          callback(nil)
+          return
+        end
+
+        local port = parse_listen_port(result.stdout or "")
+        if not port then
+          callback(nil)
+          return
+        end
+
+        callback("http://localhost:" .. tostring(port))
+      end)
+    end
+  )
 end
 
 ---Substitute variables in a string
@@ -163,11 +260,11 @@ local function deep_substitute(obj, variables)
   end
 end
 
----Resolve base URL for relative URLs
+---Resolve base URL for relative URLs without prompting.
 ---@param url string Request URL
 ---@param base_url string|nil Environment base URL
 ---@return string Resolved URL
-local function resolve_url(url, base_url)
+local function resolve_url(url, base_url, project_root)
   if not url then
     return url
   end
@@ -182,28 +279,59 @@ local function resolve_url(url, base_url)
     return base_url .. url
   end
 
-  -- No base URL - prompt user once per session
-  if not M._base_url_cache then
-    local input_received = false
-    vim.ui.input(
-      { prompt = "Enter base URL (e.g. http://localhost:3000): " },
-      function(input)
-        if input and input ~= "" then
-          M._base_url_cache = input
-          input_received = true
-        end
-      end
-    )
-    -- Note: This is async, so we'll just return the original URL here
-    -- In production, this would need to be handled differently
-  end
-
-  if M._base_url_cache then
-    return M._base_url_cache .. url
+  local cached_base_url = get_cached_base_url(project_root or get_project_root())
+  if cached_base_url then
+    return cached_base_url .. url
   end
 
   -- Return URL unchanged if no base URL
   return url
+end
+
+---Resolve base URL for relative URLs, prompting when needed.
+---@param url string Request URL
+---@param base_url string|nil Environment base URL
+---@param opts table|nil Options: { project_root?, force_detect? }
+---@param callback function Callback(resolved_url)
+local function resolve_url_async(url, base_url, opts, callback)
+  if not url or url:match("^https?://") then
+    callback(url)
+    return
+  end
+
+  opts = opts or {}
+  local project_root = opts.project_root or get_project_root()
+
+  if base_url then
+    callback(base_url .. url)
+    return
+  end
+
+  if not opts.force_detect then
+    local cached_base_url = get_cached_base_url(project_root)
+    if cached_base_url then
+      callback(cached_base_url .. url)
+      return
+    end
+  end
+
+  detect_rails_base_url_async(project_root, function(detected_base_url)
+    if detected_base_url then
+      set_cached_base_url(project_root, detected_base_url)
+      log.info("restman: detected local Rails server at " .. detected_base_url)
+      callback(detected_base_url .. url)
+      return
+    end
+
+    vim.ui.input({ prompt = "Enter base URL (e.g. http://localhost:3000): " }, function(input)
+      if input and input ~= "" then
+        set_cached_base_url(project_root, input)
+        callback(input .. url)
+        return
+      end
+      callback(url)
+    end)
+  end)
 end
 
 ---Load environment (lazy load)
@@ -217,6 +345,7 @@ function M.reload()
   M._cache = nil
   M._active = nil
   M._notified_missing = false
+  M._base_url_cache = {}
   return load_env_file()
 end
 
@@ -261,31 +390,34 @@ function M.apply_to(request)
     return request
   end
 
+  local modified_request = vim.deepcopy(request)
+
   -- Load environment
   local env_data = M.load()
   if not env_data then
-    return request  -- No environment, return request unchanged
+    if modified_request.url then
+      modified_request.url = resolve_url(modified_request.url, nil, get_project_root())
+    end
+    return modified_request
   end
 
   -- Get active environment (use default if not set)
   local active = M._active or env_data.default
   if not active or not env_data.environments[active] then
-    return request  -- No valid active environment
+    if modified_request.url then
+      modified_request.url = resolve_url(modified_request.url, nil, get_project_root())
+    end
+    return modified_request
   end
 
   local active_env = env_data.environments[active]
   local variables = active_env.variables or {}
 
-  -- Make a copy to avoid modifying original
-  local modified_request = vim.deepcopy(request)
-
   -- 1. Substitute URL
   if modified_request.url then
     modified_request.url = gsub_vars(modified_request.url, variables)
-    -- 2. Resolve relative URLs with base_url
-    if active_env.base_url then
-      modified_request.url = resolve_url(modified_request.url, active_env.base_url)
-    end
+    modified_request.url =
+      resolve_url(modified_request.url, active_env.base_url, get_project_root())
   end
 
   -- 3. Merge environment headers into request headers
@@ -325,5 +457,54 @@ function M.apply_to(request)
 
   return modified_request
 end
+
+---Apply environment to request and resolve relative URL asynchronously.
+---@param request table Parsed request object
+---@param opts table|nil Options: { project_root?, force_detect? }
+---@param callback function Callback(modified_request)
+function M.apply_to_async(request, opts, callback)
+  if not request then
+    callback = opts
+    callback(request)
+    return
+  end
+
+  if type(opts) == "function" then
+    callback = opts
+    opts = {}
+  end
+
+  opts = opts or {}
+
+  local modified_request = M.apply_to(request)
+  local env_data = M.load()
+  local active_env = nil
+
+  if env_data and env_data.environments then
+    local active = M._active or env_data.default
+    active_env = active and env_data.environments[active] or nil
+  end
+
+  resolve_url_async(
+    modified_request.url,
+    active_env and active_env.base_url or nil,
+    opts,
+    function(url)
+      modified_request.url = url
+      callback(modified_request)
+    end
+  )
+end
+
+---@param project_root string|nil
+function M.clear_base_url_cache(project_root)
+  if project_root then
+    M._base_url_cache[project_root] = nil
+    return
+  end
+  M._base_url_cache = {}
+end
+
+M._parse_listen_port = parse_listen_port
 
 return M

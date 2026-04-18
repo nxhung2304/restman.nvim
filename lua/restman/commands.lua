@@ -133,22 +133,22 @@ function M._send(opts)
         return
       end
 
-      -- Apply environment
-      request = env.apply_to(request)
-      M._last = { request = request }
+      env.apply_to_async(request, function(resolved_request)
+        M._last = { request = resolved_request }
 
-      -- Send request
-      http_client.send(request, function(response)
-        -- Schedule on main thread
-        vim.schedule(function()
-          local resp_bufnr = buffer.create(request, response)
-          local cfg = config.get()
-          view.open(resp_bufnr, cfg.response_view.default_view)
-          -- Persist to history (only on successful response with a status code)
-          if response.status then
-            local history = require("restman.history")
-            history.append(request, response, resp_bufnr)
-          end
+        -- Send request
+        http_client.send(resolved_request, function(response)
+          -- Schedule on main thread
+          vim.schedule(function()
+            local resp_bufnr = buffer.create(resolved_request, response)
+            local cfg = config.get()
+            view.open(resp_bufnr, cfg.response_view.default_view)
+            -- Persist to history (only on successful response with a status code)
+            if response.status then
+              local history = require("restman.history")
+              history.append(resolved_request, response, resp_bufnr)
+            end
+          end)
         end)
       end)
     end)

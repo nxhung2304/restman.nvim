@@ -1,6 +1,6 @@
 -- Tests for environment loader (issue #8)
 
-local project_root = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":h:h:h:h")
+local project_root = vim.fn.fnamemodify(debug.getinfo(1).source:sub(2), ":h:h:h")
 package.path = project_root .. "/lua/?.lua;" .. package.path
 
 local env = require("restman.env")
@@ -50,6 +50,54 @@ test_case("Apply env to request with no env loaded", function()
   local result = env.apply_to(request)
   assert_eq(result.method, "GET", "method unchanged")
   assert_eq(result.url, "http://example.com/api", "url unchanged")
+end)
+
+test_case("Relative URL uses cached base URL without env file", function()
+  local previous_cache = env._base_url_cache
+  local previous_env_cache = env._cache
+  local previous_active = env._active
+  env._cache = false
+  env._active = nil
+  env._base_url_cache = { [project_root] = "http://localhost:3000" }
+
+  local result = env.apply_to({
+    method = "GET",
+    url = "/users",
+    headers = {},
+  })
+
+  assert_eq(result.url, "http://localhost:3000/users", "relative URL should use cached base URL")
+
+  env._base_url_cache = previous_cache
+  env._cache = previous_env_cache
+  env._active = previous_active
+end)
+
+test_case("Base URL cache is scoped by project root", function()
+  local previous_cache = env._base_url_cache
+  env._base_url_cache = {
+    ["/tmp/project-a"] = "http://localhost:3000",
+    ["/tmp/project-b"] = "http://localhost:3030",
+  }
+
+  assert_eq(env._base_url_cache["/tmp/project-a"], "http://localhost:3000", "project A cache")
+  assert_eq(env._base_url_cache["/tmp/project-b"], "http://localhost:3030", "project B cache")
+
+  env._base_url_cache = previous_cache
+end)
+
+test_case("Parse port from lsof LISTEN output", function()
+  local port = env._parse_listen_port(table.concat({
+    "COMMAND   PID USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME",
+    "ruby    12345 dev    8u  IPv4 0x123456789abcdef      0t0  TCP 127.0.0.1:3030 (LISTEN)",
+  }, "\n"))
+
+  assert_eq(port, 3030, "should parse Rails custom port")
+end)
+
+test_case("Ignore lsof output without LISTEN port", function()
+  local port = env._parse_listen_port("ruby 12345 dev txt REG /usr/bin/ruby")
+  assert_eq(port, nil, "should ignore non-network output")
 end)
 
 -- Test 2: Variable substitution in URL
@@ -192,7 +240,7 @@ end)
 -- Test 13: Environment variables pattern
 test_case("Environment variable patterns", function()
   local patterns = {
-    "{{VAR_NAME}}" ,
+    "{{VAR_NAME}}",
     "{{$env.HOME}}",
     "{{API_KEY}}",
     "{{$env.PATH}}",
