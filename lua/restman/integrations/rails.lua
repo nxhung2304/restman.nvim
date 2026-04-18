@@ -75,6 +75,8 @@ local function ensure_gitignore(project_root)
   vim.fn.writefile(lines, gitignore)
 end
 
+local detect_grape_mount
+
 local function compare_mtime(a, b)
   local a_sec = a.sec or 0
   local b_sec = b.sec or 0
@@ -169,14 +171,32 @@ local function cache_is_stale(routes_file, cache_file)
   return compare_mtime(routes_stat.mtime, cache_stat.mtime) > 0
 end
 
+local function format_route_for_picker(route, description_format)
+  description_format = description_format or " → %s"
+  local desc_part = ""
+
+  -- Check if action looks like a description (not controller#action format)
+  if route.action and route.action ~= "" and not route.action:find("#", 1, true) then
+    desc_part = string.format(description_format, route.action)
+  end
+
+  if desc_part ~= "" then
+    return string.format("%-6s %s%s", route.verb, route.path, desc_part)
+  else
+    return string.format("%-6s %s %s", route.verb, route.path, route.action)
+  end
+end
+
 local function open_picker(routes)
   local picker = require("restman.ui.picker")
+  local cfg = config.get()
+  local description_format = cfg.rails.grape_description_format or " → %s"
 
   picker.pick({
     items = routes,
     title = "Rails Routes",
     format = function(route)
-      return string.format("%-6s %s %s", route.verb, route.path, route.action)
+      return format_route_for_picker(route, description_format)
     end,
     on_select = function(route)
       M.send_route(route)
@@ -204,7 +224,80 @@ local function send_request(request)
   end)
 end
 
-local function load_from_command(project_root, cache_file, callback)
+local function merge_routes(base_routes, extra_routes)
+  local merged = {}
+  local seen = {}
+
+  for _, route in ipairs(base_routes or {}) do
+    -- Use only verb + path as key (ignore action to avoid duplicates)
+    local key = route.verb .. " " .. route.path
+    if not seen[key] then
+      seen[key] = true
+      table.insert(merged, route)
+    end
+  end
+
+  for _, route in ipairs(extra_routes or {}) do
+    -- Use only verb + path as key (ignore action to avoid duplicates)
+    local key = route.verb .. " " .. route.path
+    if not seen[key] then
+      seen[key] = true
+      table.insert(merged, route)
+    end
+  end
+
+  return merged
+end
+
+local function sort_routes_by_api(routes)
+  table.sort(routes, function(a, b)
+    -- Check if routes have /api in path
+    local a_has_api = a.path:find("/api", 1, true) ~= nil
+    local b_has_api = b.path:find("/api", 1, true) ~= nil
+
+    -- If one has /api and the other doesn't, /api comes first
+    if a_has_api ~= b_has_api then
+      return a_has_api
+    end
+
+    -- Otherwise, maintain original order by path
+    return a.path < b.path
+  end)
+  return routes
+end
+
+local function load_optional_grape_routes(project_root, base_routes, opts, callback)
+  if not detect_grape_mount(project_root) then
+    log.info("Restman: no Grape mount detected in config/routes.rb")
+    base_routes = sort_routes_by_api(base_routes or {})
+    log.info("Restman: " .. #(base_routes or {}) .. " Rails routes loaded")
+    callback(base_routes)
+    return
+  end
+
+  log.info("Restman: detected Grape mount, attempting to load Grape routes...")
+  local rails_grape = require("restman.integrations.rails_grape")
+  rails_grape.load_routes(opts, function(grape_routes)
+    if not grape_routes or #grape_routes == 0 then
+      log.warn("Detected mounted Grape API, but grape:routes could not be loaded; Rails routes may be incomplete")
+      base_routes = sort_routes_by_api(base_routes or {})
+      callback(base_routes)
+      return
+    end
+
+    log.info("Restman: loaded " .. #(grape_routes or {}) .. " Grape routes")
+    log.info("Restman: " .. #(base_routes or {}) .. " Rails routes")
+
+    -- Prioritize Grape routes (API) first, then add Rails routes (sorted by /api)
+    local sorted_base = sort_routes_by_api(base_routes or {})
+    local merged = merge_routes(grape_routes, sorted_base)
+
+    log.info("Restman: merged to " .. #merged .. " total routes")
+    callback(merged)
+  end)
+end
+
+local function load_from_command(project_root, cache_file, opts, callback)
   local cfg = config.get()
   local cmd = vim.split(cfg.rails.command or "bin/rails routes", "%s+", { trimempty = true })
 
@@ -217,13 +310,14 @@ local function load_from_command(project_root, cache_file, callback)
       if result.code ~= 0 then
         local stderr = vim.trim(result.stderr or "")
         log.error("rails routes failed" .. (stderr ~= "" and (": " .. stderr) or ""))
-        callback(nil)
+        load_optional_grape_routes(project_root, nil, opts, callback)
         return
       end
 
       local stdout = result.stdout or ""
       vim.fn.writefile(vim.split(stdout, "\n", { plain = true }), cache_file)
-      callback(parse_routes_output(stdout))
+      local routes = parse_routes_output(stdout)
+      load_optional_grape_routes(project_root, routes, opts, callback)
     end)
   end)
 end
@@ -279,11 +373,11 @@ function M.load_routes(opts, callback)
       log.warn("routes.rb has changed, run :Restman rails refresh")
     end
     M._last_cache_read_ns = vim.uv.hrtime() - started_at
-    callback(cached_routes)
+    load_optional_grape_routes(project_root, cached_routes, opts, callback)
     return
   end
 
-  load_from_command(project_root, cache_file, callback)
+  load_from_command(project_root, cache_file, opts, callback)
 end
 
 function M.open(opts)
@@ -295,10 +389,38 @@ function M.open(opts)
   end)
 end
 
+detect_grape_mount = function(project_root)
+  local routes_file = get_routes_file(project_root)
+  if vim.fn.filereadable(routes_file) == 0 then
+    return false
+  end
+
+  local content = table.concat(vim.fn.readfile(routes_file), "\n")
+
+  -- Look for common patterns like mount Api::Base => "/" or mount Api::Base => '/'
+  local patterns = {
+    "mount%s+[^%s]+::Base%s+=>%s+[\"'][^\"']+[\"']",
+    "mount%s+[^%s]+::V[0-9]+::Base%s+=>%s+[\"'][^\"']+[\"']",
+  }
+
+  for _, pattern in ipairs(patterns) do
+    if content:match(pattern) then
+      return true
+    end
+  end
+
+  return false
+end
+
 M._find_project_root = find_project_root
+M._get_current_dir = get_current_dir
 M._parse_route_line = parse_route_line
 M._parse_routes_output = parse_routes_output
 M._cache_is_stale = cache_is_stale
 M._get_cache_file = get_cache_file
+M._format_route_for_picker = format_route_for_picker
+M._merge_routes = merge_routes
+M._sort_routes_by_api = sort_routes_by_api
+M.detect_grape_mount = detect_grape_mount
 
 return M

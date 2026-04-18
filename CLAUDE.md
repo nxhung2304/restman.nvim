@@ -1,6 +1,4 @@
-# Restman.nvim — AI Context
-
-> Đọc file này đầu tiên mỗi session. Nó là entry point tham chiếu cho mọi quyết định.
+# Restman.nvim
 
 ## Project
 **Restman.nvim** — Neovim plugin đóng vai trò REST client với triết lý **one-key experience, frictionless**. Đặt con trỏ trên một dòng request → bấm 1 phím → nhận kết quả trong floating window.
@@ -26,5 +24,5 @@
 - **Telescope:** optional. Luôn `pcall(require, "telescope")` + fallback `vim.ui.select`.
 
 ### Mcp
-Github: https://github.com/nxhung2304/courier.nvim
+Github: https://github.com/nxhung2304/restman.nvim
 

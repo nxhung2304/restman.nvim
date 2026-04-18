@@ -20,7 +20,11 @@ local M = {}
 
 ---@class RailsConfig
 ---@field cache_file? string Path to cache file (auto-generated if nil)
+---@field grape_cache_file? string Path to grape route cache file (auto-generated if nil)
 ---@field command string Command to list routes (default: "bin/rails routes")
+---@field grape_command string Command to list grape routes (default: "bundle exec rake grape:routes")
+---@field grape_description_format string Format for Grape route description in picker (default: " → %s")
+---                                      Use %s as placeholder for description text
 
 ---@type RestmanConfig
 M.defaults = {
@@ -59,7 +63,10 @@ M.defaults = {
 
   rails = {
     cache_file = nil, -- Will use default: vim.fn.stdpath("cache") .. "/restman/rails_routes.txt"
+    grape_cache_file = nil, -- Will use default: project_root .. "/.cache/restman/rails_grape_routes.txt"
     command = "bin/rails routes",
+    grape_command = "bundle exec rake grape:routes",
+    grape_description_format = " → %s", -- Format: %s = description text
   },
 }
 

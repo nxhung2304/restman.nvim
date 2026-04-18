@@ -249,8 +249,25 @@ end
 ---Rails subcommand (stub for issue #15)
 ---@param opts table Command options
 function M._rails(opts)
+  local sub_sub = opts.fargs[2]
   local rails = require("restman.integrations.rails")
-  rails.open({ refresh = opts.fargs[2] == "refresh" })
+  local project_root = rails._find_project_root(rails._get_current_dir())
+
+  if sub_sub == "grape" then
+    M._rails_grape(opts)
+  else
+    if project_root and rails.detect_grape_mount(project_root) then
+      log.info("Restman: detected mounted Grape API; loading grape routes fallback")
+    end
+    rails.open({ refresh = sub_sub == "refresh" })
+  end
+end
+
+---Rails Grape subcommand
+---@param opts table Command options
+function M._rails_grape(opts)
+  local rails_grape = require("restman.integrations.rails_grape")
+  rails_grape.open({ refresh = opts.fargs[3] == "refresh" })
 end
 
 ---Tab completion for :Restman command
@@ -276,7 +293,11 @@ function M._complete(arg, line)
 
   -- Sub-subcommand completion (e.g., rails refresh, history clear)
   if args[2] == "rails" then
-    return filter({ "refresh" })
+    if #args <= 3 then
+      return filter({ "grape", "refresh" })
+    elseif args[3] == "grape" then
+      return filter({ "refresh" })
+    end
   end
   if args[2] == "history" then
     return filter({ "clear" })
