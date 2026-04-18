@@ -1,9 +1,10 @@
 -- Telescope extension for Restman
 
-local telescope = require("telescope")
-local picker = require("restman.ui.picker")
 local env = require("restman.env")
 local log = require("restman.log")
+local picker = require("restman.ui.picker")
+local rails = require("restman.integrations.rails")
+local telescope = require("telescope")
 
 return telescope.register_extension({
   exports = {
@@ -21,6 +22,9 @@ return telescope.register_extension({
         end,
         on_select = env.set_active,
       })
+    end,
+    rails_routes = function()
+      rails.open()
     end,
   },
 })

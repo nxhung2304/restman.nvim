@@ -59,7 +59,7 @@ function M._send(opts)
   local config = require("restman.config")
 
   local function do_send()
-    local bufnr = 0  -- Current buffer
+    local bufnr = 0 -- Current buffer
     local line = vim.api.nvim_win_get_cursor(0)[1]
     local visual_block = nil
 
@@ -69,7 +69,7 @@ function M._send(opts)
 
       -- Scan visual block for request line (can be at any position)
       local found_request_line = false
-      local request_line_idx = nil  -- Index in vlines (1-based)
+      local request_line_idx = nil -- Index in vlines (1-based)
 
       for i, vline in ipairs(vlines) do
         local actual_line_number = opts.line1 + i - 1
@@ -86,7 +86,8 @@ function M._send(opts)
         for scan_line = opts.line1 - 1, math.max(1, opts.line1 - 50), -1 do
           local candidate_lines = vim.api.nvim_buf_get_lines(bufnr, scan_line - 1, scan_line, false)
           if #candidate_lines > 0 then
-            local parser_result = parser.parse(candidate_lines[1], scan_line, vim.api.nvim_buf_get_name(bufnr))
+            local parser_result =
+              parser.parse(candidate_lines[1], scan_line, vim.api.nvim_buf_get_name(bufnr))
             if parser_result then
               line = scan_line
               found_request_line = true
@@ -132,22 +133,22 @@ function M._send(opts)
         return
       end
 
-      -- Apply environment
-      request = env.apply_to(request)
-      M._last = { request = request }
+      env.apply_to_async(request, function(resolved_request)
+        M._last = { request = resolved_request }
 
-      -- Send request
-      http_client.send(request, function(response)
-        -- Schedule on main thread
-        vim.schedule(function()
-          local resp_bufnr = buffer.create(request, response)
-          local cfg = config.get()
-          view.open(resp_bufnr, cfg.response_view.default_view)
-          -- Persist to history (only on successful response with a status code)
-          if response.status then
-            local history = require("restman.history")
-            history.append(request, response, resp_bufnr)
-          end
+        -- Send request
+        http_client.send(resolved_request, function(response)
+          -- Schedule on main thread
+          vim.schedule(function()
+            local resp_bufnr = buffer.create(resolved_request, response)
+            local cfg = config.get()
+            view.open(resp_bufnr, cfg.response_view.default_view)
+            -- Persist to history (only on successful response with a status code)
+            if response.status then
+              local history = require("restman.history")
+              history.append(resolved_request, response, resp_bufnr)
+            end
+          end)
         end)
       end)
     end)
@@ -248,12 +249,8 @@ end
 ---Rails subcommand (stub for issue #15)
 ---@param opts table Command options
 function M._rails(opts)
-  local sub_sub = opts.fargs[2]
-  if sub_sub == "refresh" then
-    log.info("Restman: rails refresh not implemented yet, see issue #15")
-  else
-    log.info("Restman: rails not implemented yet, see issue #15")
-  end
+  local rails = require("restman.integrations.rails")
+  rails.open({ refresh = opts.fargs[2] == "refresh" })
 end
 
 ---Tab completion for :Restman command
@@ -264,8 +261,12 @@ function M._complete(arg, line)
   local args = vim.split(line, "%s+")
 
   local function filter(candidates)
-    if arg == "" then return candidates end
-    return vim.tbl_filter(function(s) return s:sub(1, #arg) == arg end, candidates)
+    if arg == "" then
+      return candidates
+    end
+    return vim.tbl_filter(function(s)
+      return s:sub(1, #arg) == arg
+    end, candidates)
   end
 
   -- Subcommand completion
@@ -291,19 +292,43 @@ function M.register_keymaps(cfg)
   local opts = { silent = true, noremap = true }
 
   -- Normal mode: use <cmd> for silent execution
-  vim.keymap.set("n", km.send, "<cmd>Restman send<CR>",
-    vim.tbl_extend("force", opts, { desc = "Restman: send request" }))
+  vim.keymap.set(
+    "n",
+    km.send,
+    "<cmd>Restman send<CR>",
+    vim.tbl_extend("force", opts, { desc = "Restman: send request" })
+  )
   -- Visual mode: use : prefix to preserve visual range
-  vim.keymap.set("v", km.send, ":Restman send<CR>",
-    vim.tbl_extend("force", opts, { desc = "Restman: send request" }))
-  vim.keymap.set("n", km.repeat_last, "<cmd>Restman repeat<CR>",
-    vim.tbl_extend("force", opts, { desc = "Restman: repeat last" }))
-  vim.keymap.set("n", km.env, "<cmd>Restman env<CR>",
-    vim.tbl_extend("force", opts, { desc = "Restman: select env" }))
-  vim.keymap.set("n", km.history, "<cmd>Restman history<CR>",
-    vim.tbl_extend("force", opts, { desc = "Restman: history" }))
-  vim.keymap.set("n", km.cancel, "<cmd>Restman cancel<CR>",
-    vim.tbl_extend("force", opts, { desc = "Restman: cancel" }))
+  vim.keymap.set(
+    "v",
+    km.send,
+    ":Restman send<CR>",
+    vim.tbl_extend("force", opts, { desc = "Restman: send request" })
+  )
+  vim.keymap.set(
+    "n",
+    km.repeat_last,
+    "<cmd>Restman repeat<CR>",
+    vim.tbl_extend("force", opts, { desc = "Restman: repeat last" })
+  )
+  vim.keymap.set(
+    "n",
+    km.env,
+    "<cmd>Restman env<CR>",
+    vim.tbl_extend("force", opts, { desc = "Restman: select env" })
+  )
+  vim.keymap.set(
+    "n",
+    km.history,
+    "<cmd>Restman history<CR>",
+    vim.tbl_extend("force", opts, { desc = "Restman: history" })
+  )
+  vim.keymap.set(
+    "n",
+    km.cancel,
+    "<cmd>Restman cancel<CR>",
+    vim.tbl_extend("force", opts, { desc = "Restman: cancel" })
+  )
 end
 
 -- Expose dispatcher for command registration

@@ -4,16 +4,17 @@
 local M = {}
 
 -- Load individual parsers and utilities
-local http_parser = require("restman.parser.http")
-local dsl_parser = require("restman.parser.dsl")
 local curl_parser = require("restman.parser.curl")
 local directives = require("restman.parser.directives")
+local dsl_parser = require("restman.parser.dsl")
+local http_parser = require("restman.parser.http")
 
 -- Session cache for dynamic params: key = "file_path:param_name"
 M._param_cache = {}
 
 -- HTTP methods for prompting
-local HTTP_METHODS = { "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "CONNECT", "TRACE" }
+local HTTP_METHODS =
+  { "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "CONNECT", "TRACE" }
 
 -- Parser registry - dispatch order: cURL first (multi-line support), then HTTP-style, then DSL
 local PARSERS = {
@@ -71,7 +72,9 @@ local function scan_below(bufnr, start_line)
 
   while current_line <= total_lines do
     local line_content = vim.api.nvim_buf_get_lines(bufnr, current_line - 1, current_line, false)[1]
-    if not line_content then break end
+    if not line_content then
+      break
+    end
 
     if not in_body then
       if line_content:match("^%s*$") then
@@ -91,8 +94,15 @@ local function scan_below(bufnr, start_line)
       local first_word = line_content:match("^%s*(%S+)")
       if first_word then
         local upper = first_word:upper()
-        if upper == "GET" or upper == "POST" or upper == "PUT" or upper == "PATCH"
-            or upper == "DELETE" or upper == "HEAD" or upper == "OPTIONS" then
+        if
+          upper == "GET"
+          or upper == "POST"
+          or upper == "PUT"
+          or upper == "PATCH"
+          or upper == "DELETE"
+          or upper == "HEAD"
+          or upper == "OPTIONS"
+        then
           break
         end
       end
@@ -235,6 +245,14 @@ local function resolve_dynamic_params(url, file_path, callback)
   resolve_next()
 end
 
+---Resolve dynamic parameters in a URL via prompts.
+---@param url string
+---@param file_path string
+---@param callback function
+function M.resolve_dynamic_params(url, file_path, callback)
+  resolve_dynamic_params(url, file_path, callback)
+end
+
 ---Prompt for HTTP method when URL is plain (no method detected)
 ---@param callback function Callback(method) when done
 local function prompt_method(callback)
@@ -345,7 +363,10 @@ function M.parse_current_line(bufnr, line, opts, callback)
   -- Handle body precedence
   if opts.visual_block then
     request.body = opts.visual_block
-  elseif not request.body and (request.method == "POST" or request.method == "PUT" or request.method == "PATCH") then
+  elseif
+    not request.body
+    and (request.method == "POST" or request.method == "PUT" or request.method == "PATCH")
+  then
     -- Need to prompt for body
     vim.ui.input({ prompt = "Enter request body (JSON): " }, function(body_input)
       if body_input and body_input ~= "" then

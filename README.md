@@ -3,12 +3,9 @@
 Send HTTP requests directly neovim with any file type
 
 ## Demo
-1. Set GET method as default
-<img src="./images/demo_get_request.png">
+<img src="./images/get_request.png">
 
-2. Create a todo
-<img src="./images/demo_post_request.png">
-
+<img src="./images/post_request.png">
 
 ## Features
 
