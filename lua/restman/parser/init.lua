@@ -55,6 +55,61 @@ local PARSERS = {
 ---@field file string Source file path
 ---@field line number Source line number (1-indexed)
 
+---Scan lines below a request line for inline headers and body
+---Reads header lines (Key: Value), a blank separator, then body content.
+---Stops at separator lines (---/###), another request line, or end of buffer.
+---@param bufnr number Buffer number
+---@param start_line number Request line number (1-indexed)
+---@return table headers Inline headers (key → value)
+---@return string|nil body Body content or nil
+local function scan_below(bufnr, start_line)
+  local headers = {}
+  local body_lines = {}
+  local in_body = false
+  local current_line = start_line + 1
+  local total_lines = vim.api.nvim_buf_line_count(bufnr)
+
+  while current_line <= total_lines do
+    local line_content = vim.api.nvim_buf_get_lines(bufnr, current_line - 1, current_line, false)[1]
+    if not line_content then break end
+
+    if not in_body then
+      if line_content:match("^%s*$") then
+        in_body = true
+      elseif line_content:match("^[%w][%w%-]*:%s") then
+        local key, value = line_content:match("^([%w][%w%-]*):%s*(.-)%s*$")
+        if key then
+          headers[key] = value or ""
+        end
+      else
+        break
+      end
+    else
+      if line_content:match("^%-%-%-") or line_content:match("^###") then
+        break
+      end
+      local first_word = line_content:match("^%s*(%S+)")
+      if first_word then
+        local upper = first_word:upper()
+        if upper == "GET" or upper == "POST" or upper == "PUT" or upper == "PATCH"
+            or upper == "DELETE" or upper == "HEAD" or upper == "OPTIONS" then
+          break
+        end
+      end
+      table.insert(body_lines, line_content)
+    end
+
+    current_line = current_line + 1
+  end
+
+  while #body_lines > 0 and body_lines[#body_lines]:match("^%s*$") do
+    body_lines[#body_lines] = nil
+  end
+
+  local body = #body_lines > 0 and table.concat(body_lines, "\n") or nil
+  return headers, body
+end
+
 ---Collect lines from buffer starting at start_line, following '\' continuations
 ---@param bufnr number Buffer number (0 for current)
 ---@param start_line number Starting line (1-indexed)
@@ -273,7 +328,17 @@ function M.parse_current_line(bufnr, line, opts, callback)
     request.headers = {}
   end
 
-  -- Scan directives above the request line
+  -- Read inline headers and body from lines below the request line
+  -- (precedence: directives above > inline below)
+  local inline_headers, inline_body = scan_below(bufnr, line)
+  for key, value in pairs(inline_headers) do
+    request.headers[key] = value
+  end
+  if inline_body and not request.body then
+    request.body = inline_body
+  end
+
+  -- Scan directives above the request line (take precedence over inline)
   local directives_result = directives.scan_above(bufnr, line)
   request = merge_directives(request, directives_result)
 

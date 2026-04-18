@@ -28,7 +28,11 @@ local function _dispatch(opts)
   elseif sub == "env" then
     M._env()
   elseif sub == "history" then
-    M._history()
+    if opts.fargs[2] == "clear" then
+      M._history_clear()
+    else
+      M._history()
+    end
   elseif sub == "cancel" then
     M._cancel()
   elseif sub == "rails" then
@@ -224,6 +228,12 @@ function M._history()
   history.open_picker()
 end
 
+---Clear all history entries
+function M._history_clear()
+  local history = require("restman.history")
+  history.clear()
+end
+
 ---Cancel request subcommand
 function M._cancel()
   local http_client = require("restman.http_client")
@@ -247,21 +257,28 @@ function M._rails(opts)
 end
 
 ---Tab completion for :Restman command
----@param _arg string Current argument being completed
+---@param arg string Current argument being completed
 ---@param line string Full command line
----@param _pos number Cursor position in line
 ---@return string[] List of completions
-function M._complete(_arg, line, _pos)
+function M._complete(arg, line)
   local args = vim.split(line, "%s+")
+
+  local function filter(candidates)
+    if arg == "" then return candidates end
+    return vim.tbl_filter(function(s) return s:sub(1, #arg) == arg end, candidates)
+  end
 
   -- Subcommand completion
   if #args <= 2 then
-    return { "send", "repeat", "env", "history", "cancel", "rails", "health" }
+    return filter({ "send", "repeat", "env", "history", "cancel", "rails", "health" })
   end
 
-  -- Sub-subcommand completion (e.g., rails refresh)
+  -- Sub-subcommand completion (e.g., rails refresh, history clear)
   if args[2] == "rails" then
-    return { "refresh" }
+    return filter({ "refresh" })
+  end
+  if args[2] == "history" then
+    return filter({ "clear" })
   end
 
   return {}
