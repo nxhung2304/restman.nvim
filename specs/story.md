@@ -57,7 +57,7 @@
 
 ### v1.1 (Enhancement)
 
-- [ ] **Request Template Generator** — `:Restman new [method]` tạo boilerplate request
+- [x] **Request Template Generator** — `:Restman new [method]` tạo boilerplate request
   - `:Restman new` → hiển thị dialog picker chọn method (vim.ui.select / Telescope)
   - `:Restman new <method>` → direct insert, bypass dialog
   - Methods hỗ trợ: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS (case-insensitive)
@@ -65,15 +65,3 @@
   - Insert template tại con trỏ:
     - GET/HEAD/DELETE: `GET https://example.com`
     - POST/PUT/PATCH: `POST https://example.com\n@restman.body {}`
-
-### v2.0 (Beyond MVP)
-
-- [ ] **Assertion Testing** — `@expect status 200`, `@expect body.id exists`
-- [ ] **Tree-sitter Parsing** — parse `axios.post(url, data)`, `fetch`, etc.
-- [ ] **OpenAPI / Swagger Import** — parse `swagger.json` thành list request
-- [ ] **GraphQL support** — detect query/mutation blocks
-- [ ] **Request chaining** — `{{$prev.body.token}}`
-- [ ] **WebSocket / SSE** viewer
-
----
-
