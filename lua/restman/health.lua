@@ -80,6 +80,22 @@ local function check_telescope()
   end
 end
 
+---Check template generator
+local function check_template_generator()
+  local ok, template_module = pcall(require, "restman.template")
+  if not ok then
+    health.warn("Template generator: unable to load template module")
+    return
+  end
+
+  local methods = template_module.list_methods()
+  if methods and #methods > 0 then
+    health.ok(string.format("Template generator: %d methods available", #methods))
+  else
+    health.warn("Template generator: no methods found")
+  end
+end
+
 ---Check history file
 local function check_history_file()
   local ok, config_module = pcall(require, "restman.config")
@@ -146,6 +162,7 @@ function M.check()
     check_curl_executable,
     check_env_file,
     check_telescope,
+    check_template_generator,
     check_history_file,
     check_rails_project,
   }
