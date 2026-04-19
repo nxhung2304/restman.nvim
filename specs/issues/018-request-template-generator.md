@@ -1,6 +1,6 @@
 ## **Status:**
 - Review: Approved
-- PR: Todo / Draft / Merged
+- PR: Draft
 
 ## Metadata
 - **Title:** Request Template Generator
