@@ -44,6 +44,7 @@ Using `lazy.nvim`:
 |---------|--------|
 | `:Restman send` | Send request at cursor |
 | `:Restman repeat` | Re-send last request |
+| `:Restman new [method]` | Generate request template (picker if no method) |
 | `:Restman env` | Switch environment |
 | `:Restman history` | Open request history picker |
 | `:Restman history clear` | Clear all history entries |

@@ -57,13 +57,14 @@
 
 ### v1.1 (Enhancement)
 
-- [ ] **Request Template Generator** — `:Restman new <method>` tạo boilerplate request
-  - Syntax: `:Restman new get|post|put|patch|delete|head|options`
-  - Insert template tại con trỏ
-  - GET/HEAD/DELETE: chỉ METHOD + URL
-  - POST/PUT/PATCH: METHOD + URL + `@restman.body {}`
-  - Method case-insensitive, render uppercase
-  - Tab-completion
+- [ ] **Request Template Generator** — `:Restman new [method]` tạo boilerplate request
+  - `:Restman new` → hiển thị dialog picker chọn method (vim.ui.select / Telescope)
+  - `:Restman new <method>` → direct insert, bypass dialog
+  - Methods hỗ trợ: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS (case-insensitive)
+  - Tab-completion cho `<method>`
+  - Insert template tại con trỏ:
+    - GET/HEAD/DELETE: `GET https://example.com`
+    - POST/PUT/PATCH: `POST https://example.com\n@restman.body {}`
 
 ### v2.0 (Beyond MVP)
 
