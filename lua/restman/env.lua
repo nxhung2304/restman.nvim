@@ -506,5 +506,6 @@ function M.clear_base_url_cache(project_root)
 end
 
 M._parse_listen_port = parse_listen_port
+M._find_project_root = find_project_root
 
 return M
