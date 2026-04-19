@@ -25,6 +25,8 @@ local function _dispatch(opts)
     M._send(opts)
   elseif sub == "repeat" then
     M._repeat()
+  elseif sub == "new" then
+    M._new(opts)
   elseif sub == "env" then
     M._env()
   elseif sub == "history" then
@@ -43,9 +45,41 @@ local function _dispatch(opts)
     if sub then
       log.warn("Restman: unknown subcommand '" .. tostring(sub) .. "'")
     else
-      log.info("Restman: available subcommands: send, repeat, env, history, cancel, rails, health")
+      log.info("Restman: available subcommands: send, repeat, new, env, history, cancel, rails, health")
     end
   end
+end
+
+---New request template subcommand
+---@param opts table Command options
+function M._new(opts)
+  local template = require("restman.template")
+  local picker = require("restman.ui.picker")
+
+  local method_arg = opts.fargs[2]
+
+  -- Direct insert: :Restman new <method>
+  if method_arg then
+    if template.insert_at_cursor(method_arg) then
+      log.info("Restman: inserted " .. method_arg:upper() .. " template")
+    else
+      log.warn("Restman: invalid HTTP method '" .. method_arg .. "'")
+    end
+    return
+  end
+
+  -- Picker mode: :Restman new
+  picker.pick({
+    items = template.list_methods(),
+    title = "Select HTTP Method",
+    format = function(m)
+      return m
+    end,
+    on_select = function(method)
+      template.insert_at_cursor(method)
+      log.info("Restman: inserted " .. method .. " template")
+    end,
+  })
 end
 
 ---Send request subcommand
@@ -288,10 +322,14 @@ function M._complete(arg, line)
 
   -- Subcommand completion
   if #args <= 2 then
-    return filter({ "send", "repeat", "env", "history", "cancel", "rails", "health" })
+    return filter({ "send", "repeat", "new", "env", "history", "cancel", "rails", "health" })
   end
 
-  -- Sub-subcommand completion (e.g., rails refresh, history clear)
+  -- Sub-subcommand completion (e.g., rails refresh, history clear, new <method>)
+  if args[2] == "new" then
+    local template = require("restman.template")
+    return filter(template.list_methods())
+  end
   if args[2] == "rails" then
     if #args <= 3 then
       return filter({ "grape", "refresh" })
