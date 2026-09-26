@@ -65,3 +65,44 @@
   - Insert template tại con trỏ:
     - GET/HEAD/DELETE: `GET https://example.com`
     - POST/PUT/PATCH: `POST https://example.com\n@restman.body {}`
+
+---
+
+### v1.2 (Correctness & Security — từ ChatGPT review, đã verify lại source)
+
+- [ ] **P0 — History không được lưu resolved secret**
+  - `history.append()` hiện lưu `resolved_request` (đã substitute `{{TOKEN}}` → giá trị thật) vào `history.json`
+  - Đổi sang lưu request gốc (còn nguyên `{{VAR}}`), chỉ resolve env lại lúc replay
+- [ ] **P1 — Environment cache phải isolated theo project root**
+  - `env.lua` dùng `M._cache`/`M._active` là module-level global, không key theo project root
+  - Mở 2 project khác nhau trong cùng session Neovim có thể dùng nhầm env của project khác
+- [ ] **P1 — Cancellation race condition trong http_client**
+  - `M._pending`/`M._cancelled` là global flag, không gắn với request instance
+  - Cancel request A rồi gửi request B ngay sau đó có thể làm B bị ảnh hưởng bởi cancel state của A
+- [ ] **P1 — Deep merge cho config**
+  - `config.merge()` hiện chỉ merge 1 level (`vim.tbl_extend`), user set nested field (vd. `response_view.float.width`) sẽ làm mất các field còn lại (`height`, `row`, `col`, `border`)
+- [ ] **P1 — Header lookup case-insensitive**
+  - Header lookup (vd. `response.headers["Content-Type"]` trong `render.lua`) đang case-sensitive
+  - Normalize lowercase khi parse (`http_client.parse_response`) và khi truy cập
+- [ ] **P1 — Hỗ trợ duplicate header (vd. Set-Cookie)**
+  - `parse_response()` hiện `headers[key] = value`, ghi đè khi có nhiều header cùng tên
+  - Đổi sang giữ list giá trị cho các key có thể lặp lại; cần làm sau task case-insensitive vì đổi data shape mà mọi nơi đọc `response.headers` phải theo
+- [ ] **P2 — Query encoding**
+  - Query key không được `vim.uri_encode`, chỉ value được encode
+  - Thứ tự query param không deterministic (`pairs()`), ảnh hưởng reproducibility/debugging
+- [ ] **P2 — Dynamic param cache key collision**
+  - Cache key hiện là `file_path:param_name`, không phân biệt được `/users/:id` và `/orders/:id` trong cùng file
+  - Đổi key sang gồm cả request identity (vd. line hoặc method+url)
+- [ ] **P2 — Tách visual-selection logic ra khỏi `commands._send()`**
+  - ~100 dòng xử lý visual block (scan request line, tách header/body) hiện nằm trong `_send()`
+  - Gom vào module riêng (vd. `restman.selection`), làm trước vì task orchestration bên dưới phụ thuộc vào output của bước này
+- [ ] **P2 — Tách request orchestration ra khỏi `commands.lua`**
+  - `_send()`/`_repeat()` hiện tự orchestrate parser → env → http_client → buffer → view → history
+  - Gom use-case orchestration ra module riêng (vd. `restman.request`), `commands.lua` chỉ còn là adapter gọi vào module đó
+- [ ] **P3 — Đổi tên "LRU" thành đúng bản chất (FIFO/oldest-created eviction)**
+  - `buffer.lua` evict theo `created_at`, không phải theo last-access → không phải LRU thật
+  - Sửa comment/docs cho đúng, hoặc implement `last_accessed` nếu cần LRU thật
+- [ ] **P3 — Bổ sung `config_test.lua`**
+  - Test nested config merge (vd. set `response_view.float.width` không được làm mất `height`/`row`/`col`/`border`)
+- [ ] **P3 — Bổ sung `history_test.lua`**
+  - Test dedup theo file:line, replay, corrupted JSON, và (sau khi P0 fix) không còn secret trong entry đã lưu
